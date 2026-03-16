@@ -27,7 +27,7 @@ class EnergetikaPDF(FPDF):
         self.set_text_color(128)
         self.cell(0, 10, 'Informe generado por Energetika - Auditoría Profesional.', 0, 0, 'C')
 
-def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente):
+def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_cliente, compania_actual_manual):
     try:
         pdf = EnergetikaPDF()
         pdf.add_page()
@@ -40,25 +40,26 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente):
         nombre_ganadora = ganadora_row.iloc[0]
         ahorro_total_periodo = ganadora_row.iloc[1]
         
-        # Detectar Compañía Actual
-        compania_actual_row = df_detalle[df_detalle['Compañía/Tarifa'].str.contains("ACTUAL", na=False)]
-        compania_actual = compania_actual_row['Compañía/Tarifa'].iloc[0].replace("📍 ", "") if not compania_actual_row.empty else "No detectada"
-
         # Sincronización de fechas
         lista_fechas = df_consumos['Fecha'].unique()
 
-        # --- NUEVA SECCIÓN: DATOS DEL CLIENTE ---
-        pdf.set_font('Arial', 'B', 12)
+        # --- SECCIÓN: DATOS DEL CLIENTE ---
+        pdf.set_font('Arial', 'B', 11)
         pdf.set_text_color(0)
-        pdf.cell(40, 10, "Cliente:", 0)
-        pdf.set_font('Arial', '', 12)
-        pdf.cell(0, 10, nombre_cliente, ln=True)
+        pdf.cell(45, 8, "Cliente:", 0)
+        pdf.set_font('Arial', '', 11)
+        pdf.cell(0, 8, nombre_cliente, ln=True)
         
-        pdf.set_font('Arial', 'B', 12)
-        pdf.cell(40, 10, "Suministro Actual:", 0)
-        pdf.set_font('Arial', '', 12)
-        pdf.set_text_color(200, 0, 0) # Rojo suave para la actual
-        pdf.cell(0, 10, compania_actual, ln=True)
+        pdf.set_font('Arial', 'B', 11)
+        pdf.cell(45, 8, "Dirección:", 0)
+        pdf.set_font('Arial', '', 11)
+        pdf.cell(0, 8, direccion_cliente, ln=True)
+
+        pdf.set_font('Arial', 'B', 11)
+        pdf.cell(45, 8, "Suministro Actual:", 0)
+        pdf.set_font('Arial', '', 11)
+        pdf.set_text_color(200, 0, 0) 
+        pdf.cell(0, 8, compania_actual_manual, ln=True)
         pdf.ln(5)
 
         # 2. TABLA 1: RESUMEN DE CONSUMOS
@@ -134,9 +135,11 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente):
         pdf.ln(5)
 
         pdf.set_font('Arial', '', 12)
-        pdf.multi_cell(0, 10, f"Tras analizar su historial de consumo, la opción más eficiente para su suministro es la tarifa:")
+        pdf.multi_cell(0, 10, f"Tras analizar su historial de consumo, la opción más eficiente para su suministro es la tarifa:", align='C')
+        
         pdf.set_font('Arial', 'B', 16)
         pdf.set_text_color(20, 50, 100)
+        # Ajuste de alineación: Ahora sale centrado correctamente
         pdf.cell(0, 15, f"{str(nombre_ganadora).upper()}", ln=True, align='C')
         
         pdf.ln(5)
@@ -156,7 +159,12 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente):
 # --- INTERFAZ STREAMLIT ---
 st.title("📄 Generador Pro | Energetika")
 
-nombre_cliente = st.text_input("Introduce el nombre del cliente:", "Cliente Energetika")
+col1, col2 = st.columns(2)
+with col1:
+    nombre_cliente = st.text_input("Nombre del cliente:", "Cliente Energetika")
+    direccion_cliente = st.text_input("Dirección del cliente:", "Calle Ejemplo 123")
+with col2:
+    compania_actual_manual = st.text_input("Compañía actual:", "Energía XXI")
 
 archivo = st.file_uploader("Sube el archivo Excel", type=["xlsx"])
 
@@ -169,7 +177,7 @@ if archivo:
         st.success("✅ Excel cargado con éxito.")
         
         if st.button("🚀 Generar Informe Completo"):
-            pdf_out = generar_pdf(df_det, df_ran, df_con, nombre_cliente)
+            pdf_out = generar_pdf(df_det, df_ran, df_con, nombre_cliente, direccion_cliente, compania_actual_manual)
             if pdf_out:
                 st.download_button(
                     label="📥 Descargar Auditoría Energetika",
