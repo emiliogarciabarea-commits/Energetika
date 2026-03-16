@@ -61,71 +61,82 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         pdf.cell(0, 8, compania_actual_manual, ln=True)
         pdf.ln(5)
 
-        # 2. TABLA 1: RESUMEN DE CONSUMOS
+        # 2. TABLA 1: RESUMEN DE CONSUMOS (MÁS PEQUEÑA)
         pdf.set_text_color(0)
-        pdf.set_font('Arial', 'B', 11)
+        pdf.set_font('Arial', 'B', 10)
         pdf.cell(0, 10, "1. RESUMEN DE CONSUMOS POR MESES ANALIZADOS", ln=True)
         
+        pdf.set_x(30) # Margen para centrar tabla pequeña
         pdf.set_fill_color(100, 100, 100)
         pdf.set_text_color(255)
-        pdf.set_font('Arial', 'B', 9)
-        pdf.cell(60, 8, " Mes de Factura", 1, 0, 'C', True)
-        pdf.cell(60, 8, " Consumo Total (kWh)", 1, 0, 'C', True)
-        pdf.cell(70, 8, " Potencia Contratada", 1, 1, 'C', True)
+        pdf.set_font('Arial', 'B', 8)
+        pdf.cell(45, 7, " Mes de Factura", 1, 0, 'C', True)
+        pdf.cell(50, 7, " Consumo Total (kWh)", 1, 0, 'C', True)
+        pdf.cell(55, 7, " Potencia Contratada", 1, 1, 'C', True)
 
         pdf.set_text_color(0)
-        pdf.set_font('Arial', '', 9)
+        pdf.set_font('Arial', '', 8)
         for fecha in lista_fechas:
             row = df_consumos[df_consumos['Fecha'] == fecha].iloc[0]
             total_kwh = row['Consumo Punta (kWh)'] + row['Consumo Llano (kWh)'] + row['Consumo Valle (kWh)']
-            pdf.cell(60, 8, f" {fecha}", 1)
-            pdf.cell(60, 8, f" {round(total_kwh, 2)} kWh", 1, 0, 'C')
-            pdf.cell(70, 8, f" {row['Potencia (kW)']} kW", 1, 1, 'C')
+            pdf.set_x(30)
+            pdf.cell(45, 7, f" {fecha}", 1)
+            pdf.cell(50, 7, f" {round(total_kwh, 2)} kWh", 1, 0, 'C')
+            pdf.cell(55, 7, f" {row['Potencia (kW)']} kW", 1, 1, 'C')
         
-        pdf.ln(10)
+        pdf.ln(8)
 
-        # 3. TABLA 2: DETALLE DE AHORRO
-        pdf.set_font('Arial', 'B', 11)
+        # 3. TABLA 2: DETALLE DE AHORRO (MÁS PEQUEÑA)
+        pdf.set_font('Arial', 'B', 10)
         pdf.cell(0, 10, "2. COMPARATIVA DE COSTES: ACTUAL VS RECOMENDADA", ln=True)
+        
+        pdf.set_x(25) # Margen para centrar
         pdf.set_fill_color(50, 50, 50)
         pdf.set_text_color(255)
-        pdf.cell(50, 8, " Periodo", 1, 0, 'C', True)
-        pdf.cell(45, 8, " Coste Actual", 1, 0, 'C', True)
-        pdf.cell(45, 8, " Coste Propuesta", 1, 0, 'C', True)
-        pdf.cell(50, 8, " Ahorro", 1, 1, 'C', True)
+        pdf.set_font('Arial', 'B', 8)
+        pdf.cell(40, 7, " Periodo", 1, 0, 'C', True)
+        pdf.cell(40, 7, " Coste Actual", 1, 0, 'C', True)
+        pdf.cell(40, 7, " Coste Propuesta", 1, 0, 'C', True)
+        pdf.cell(40, 7, " Ahorro", 1, 1, 'C', True)
 
         pdf.set_text_color(0)
-        pdf.set_font('Arial', '', 9)
+        pdf.set_font('Arial', '', 8)
         for fecha in lista_fechas:
             mes_data = df_detalle[df_detalle['Mes/Fecha'] == fecha]
             try:
                 c_act = mes_data[mes_data['Compañía/Tarifa'].str.contains("ACTUAL", na=False)]['Coste (€)'].values[0]
                 c_pro = mes_data[mes_data['Compañía/Tarifa'] == nombre_ganadora]['Coste (€)'].values[0]
-                pdf.cell(50, 8, f" {fecha}", 1)
-                pdf.cell(45, 8, f" {round(c_act, 2)} EUR", 1, 0, 'R')
-                pdf.cell(45, 8, f" {round(c_pro, 2)} EUR", 1, 0, 'R')
-                pdf.cell(50, 8, f" {round(c_act - c_pro, 2)} EUR", 1, 1, 'R')
+                pdf.set_x(25)
+                pdf.cell(40, 7, f" {fecha}", 1)
+                pdf.cell(40, 7, f" {round(c_act, 2)} EUR", 1, 0, 'R')
+                pdf.cell(40, 7, f" {round(c_pro, 2)} EUR", 1, 0, 'R')
+                pdf.cell(40, 7, f" {round(c_act - c_pro, 2)} EUR", 1, 1, 'R')
             except: continue
 
-        pdf.ln(10)
+        pdf.ln(8)
 
-        # 4. TABLA 3: TOP 5 MEJORES ALTERNATIVAS
-        pdf.set_font('Arial', 'B', 11)
+        # 4. TABLA 3: TOP 5 MEJORES ALTERNATIVAS (MÁS PEQUEÑA)
+        pdf.set_font('Arial', 'B', 10)
         pdf.cell(0, 10, "3. COMPARATIVA CON OTRAS OPCIONES DE MERCADO", ln=True)
+        
+        pdf.set_x(35) # Margen para centrar
         pdf.set_fill_color(20, 50, 100)
         pdf.set_text_color(255)
-        pdf.cell(120, 8, " Compañía / Tarifa", 1, 0, 'L', True)
-        pdf.cell(70, 8, " Ahorro Total Detectado", 1, 1, 'C', True)
+        pdf.set_font('Arial', 'B', 8)
+        pdf.cell(80, 7, " Compañía / Tarifa", 1, 0, 'L', True)
+        pdf.cell(60, 7, " Ahorro Total Detectado", 1, 1, 'C', True)
 
         pdf.set_text_color(0)
+        pdf.set_font('Arial', '', 8)
         top_5 = ranking_ordenado.head(5)
         for _, row in top_5.iterrows():
-            pdf.cell(120, 8, f" {row.iloc[0]}", 1)
+            pdf.set_x(35)
+            pdf.cell(80, 7, f" {row.iloc[0]}", 1)
             pdf.set_text_color(34, 139, 34)
-            pdf.cell(70, 8, f" +{round(row.iloc[1], 2)} EUR", 1, 1, 'C')
+            pdf.cell(60, 7, f" +{round(row.iloc[1], 2)} EUR", 1, 1, 'C')
             pdf.set_text_color(0)
 
-        pdf.ln(15)
+        pdf.ln(12)
 
         # 5. CONCLUSIÓN Y RECOMENDACIÓN FINAL
         pdf.set_fill_color(230, 240, 255)
@@ -136,7 +147,6 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         pdf.set_font('Arial', '', 12)
         pdf.multi_cell(0, 10, f"Tras analizar su historial de consumo, la opción más eficiente para su suministro es la tarifa:", align='C')
         
-        # --- BLOQUE CENTRADO CON LETRA MÁS PEQUEÑA (TAMAÑO 12) ---
         pdf.set_font('Arial', 'B', 12)
         pdf.set_text_color(20, 50, 100)
         pdf.cell(0, 12, f"{str(nombre_ganadora).upper()}", ln=True, align='C')
