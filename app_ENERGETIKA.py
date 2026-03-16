@@ -1,142 +1,133 @@
 import streamlit as st
-import pdfplumber
-import re
 import pandas as pd
 import io
 import os
 from fpdf import FPDF
 from datetime import datetime
 
-# --- CLASE PARA EL PDF PERSONALIZADO ---
-class AuditoriaPDF(FPDF):
+# --- CLASE PARA EL PDF DE ENERGETIKA ---
+class EnergetikaPDF(FPDF):
     def header(self):
-        # Logo en la parte superior derecha (x=150, y=8, ancho=50)
+        # Logo en la parte superior derecha
         if os.path.exists("Logo_Energetika.jpg"):
-            self.image("Logo_Energetika.jpg", 145, 8, 55)
+            self.image("Logo_Energetika.jpg", 150, 8, 50)
         
         self.set_font('Arial', 'B', 16)
-        self.set_text_color(30, 70, 120)
-        self.cell(0, 10, 'AUDITORÍA DE AHORRO ENERGÉTICO', ln=True)
+        self.set_text_color(33, 47, 61)
+        self.cell(0, 10, 'INFORME DE AUDITORÍA ENERGÉTICA', ln=True)
         self.set_font('Arial', '', 10)
         self.set_text_color(100)
-        self.cell(0, 5, f'Fecha del informe: {datetime.now().strftime("%d/%m/%Y")}', ln=True)
-        self.ln(15)
-        # Línea decorativa
-        self.set_draw_color(46, 204, 113)
-        self.line(10, 35, 200, 35)
-        self.ln(10)
+        self.cell(0, 5, f'Generado el: {datetime.now().strftime("%d/%m/%Y")}', ln=True)
+        self.ln(20)
 
     def footer(self):
         self.set_y(-15)
         self.set_font('Arial', 'I', 8)
         self.set_text_color(128)
-        self.cell(0, 10, 'Energetika Asesoramiento Energético - Informe Confidencial', 0, 0, 'L')
+        self.cell(0, 10, 'Energetika - Asesoramiento Energético Profesional', 0, 0, 'L')
         self.cell(0, 10, f'Página {self.page_no()}', 0, 0, 'R')
 
-# --- LÓGICA DE EXTRACCIÓN (Optimizada para Iberdrola/Naturgy/ECI) ---
-def extraer_datos_factura(pdf_file):
-    texto_completo = ""
-    with pdfplumber.open(pdf_file) as pdf:
-        for pagina in pdf.pages:
-            texto_completo += pagina.extract_text() + "\n"
+def generar_pdf(df_detalle, df_ranking):
+    pdf = EnergetikaPDF()
+    pdf.add_page()
 
-    # Detección de empresa
-    es_iberdrola = re.search(r'IBERDROLA\s+CLIENTES', texto_completo, re.IGNORECASE)
-    es_naturgy = re.search(r'Naturgy', texto_completo, re.IGNORECASE)
+    # 1. IDENTIFICAR GANADORA Y DATOS CLAVE
+    # Filtramos para no incluir la "Factura Actual" en el ranking del PDF
+    ranking_real = df_ranking[df_ranking.iloc[:, 0] != "📍 TU FACTURA ACTUAL"].sort_values(by=df_ranking.columns[1], ascending=False)
+    mejor_cia = ranking_real.iloc[0, 0]
+    ahorro_total = ranking_real.iloc[0, 1]
+    
+    # Cálculo de ahorro anual estimado (basado en el promedio de las facturas subidas)
+    num_facturas = df_detalle['Mes/Fecha'].nunique()
+    ahorro_anual = (ahorro_total / num_facturas) * 12 if num_facturas > 0 else ahorro_total
 
-    # Inicializar valores
-    res = {"Titular": "No encontrado", "Fecha": "No encontrada", "Días": 0, "Potencia": 0.0, 
-           "Punta": 0.0, "Llano": 0.0, "Valle": 0.0, "Total": 0.0, "CUPS": "No encontrado"}
+    # 2. BLOQUE DESTACADO: LA GANADORA
+    pdf.set_fill_color(235, 245, 251)
+    pdf.set_font('Arial', 'B', 14)
+    pdf.cell(0, 15, f" RESULTADO: PROPUESTA DE AHORRO CON {mejor_cia.upper()}", ln=True, fill=True, align='C')
+    pdf.ln(5)
 
-    # Extraer Titular (Ejemplo específico de tu factura)
-    m_titular = re.search(r'Titular\n(.*?)\n', texto_completo)
-    if m_titular: res["Titular"] = m_titular.group(1).strip()
+    pdf.set_font('Arial', 'B', 12)
+    pdf.set_text_color(40, 180, 99) # Verde
+    pdf.cell(0, 10, f"AHORRO TOTAL ACUMULADO ANALIZADO: {round(ahorro_total, 2)} EUR", ln=True)
+    pdf.set_font('Arial', 'B', 13)
+    pdf.cell(0, 10, f"AHORRO ANUAL ESTIMADO: {round(ahorro_anual, 2)} EUR*", ln=True)
+    pdf.set_font('Arial', 'I', 8)
+    pdf.set_text_color(100)
+    pdf.cell(0, 5, "*(Cálculo proyectado basado en el histórico de facturas facilitado)", ln=True)
+    pdf.ln(10)
 
-    # Extraer CUPS
-    m_cups = re.search(r'ES\s?\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\s?\w{2}', texto_completo)
-    if m_cups: res["CUPS"] = m_cups.group(0)
+    # 3. RESUMEN DE FACTURAS ANALIZADAS
+    pdf.set_text_color(0)
+    pdf.set_font('Arial', 'B', 11)
+    pdf.cell(0, 10, "DETALLE DE FACTURAS PROCESADAS:", ln=True)
+    
+    # Cabecera tabla facturas
+    pdf.set_fill_color(52, 73, 94)
+    pdf.set_text_color(255)
+    pdf.set_font('Arial', 'B', 9)
+    pdf.cell(40, 8, " Periodo", 1, 0, 'C', True)
+    pdf.cell(50, 8, " Coste Actual", 1, 0, 'C', True)
+    pdf.cell(50, 8, f" Coste {mejor_cia[:10]}...", 1, 0, 'C', True)
+    pdf.cell(40, 8, " Ahorro", 1, 1, 'C', True)
 
-    if es_iberdrola:
-        # Consumos según tu factura 
-        res["Punta"] = float(re.search(r'Punta:?\s*([\d,.]+)\s*kWh', texto_completo).group(1).replace(',', '.'))
-        res["Llano"] = float(re.search(r'Llano:?\s*([\d,.]+)\s*kWh', texto_completo).group(1).replace(',', '.'))
-        res["Valle"] = float(re.search(r'Valle:?\s*([\d,.]+)\s*kWh', texto_completo).group(1).replace(',', '.'))
-        res["Potencia"] = float(re.search(r'Potencia punta:\s*([\d,.]+)\s*kW', texto_completo).group(1).replace(',', '.'))
-        res["Días"] = int(re.search(r'Potencia\s+facturada.*?(\d+)\s+días', texto_completo, re.DOTALL).group(1))
-        res["Total"] = float(re.search(r'TOTAL\s+IMPORTE\s+FACTURA.*?([\d,.]+)\s*€', texto_completo, re.DOTALL).group(1).replace(',', '.'))
-        res["Fecha"] = re.search(r'(\d{2}/\d{2}/\d{4})', texto_completo).group(1)
+    # Filas de la tabla (solo comparando actual vs mejor opción)
+    pdf.set_text_color(0)
+    pdf.set_font('Arial', '', 9)
+    
+    for fecha in df_detalle['Mes/Fecha'].unique():
+        datos_mes = df_detalle[df_detalle['Mes/Fecha'] == fecha]
+        coste_actual = datos_mes[datos_mes['Compañía/Tarifa'] == "📍 TU FACTURA ACTUAL"]['Coste (€)'].values[0]
+        coste_mejor = datos_mes[datos_mes['Compañía/Tarifa'] == mejor_cia]['Coste (€)'].values[0]
+        ahorro_mes = coste_actual - coste_mejor
+        
+        pdf.cell(40, 8, f" {fecha}", 1)
+        pdf.cell(50, 8, f" {round(coste_actual, 2)} EUR", 1, 0, 'R')
+        pdf.cell(50, 8, f" {round(coste_mejor, 2)} EUR", 1, 0, 'R')
+        pdf.cell(40, 8, f" {round(ahorro_mes, 2)} EUR", 1, 1, 'R')
 
-    return res
+    pdf.ln(10)
+
+    # 4. RANKING DE COMPAÑÍAS
+    pdf.set_font('Arial', 'B', 11)
+    pdf.cell(0, 10, "COMPARATIVA DE OTRAS COMPAÑÍAS (AHORRO TOTAL):", ln=True)
+    
+    pdf.set_font('Arial', '', 10)
+    for i, row in ranking_real.iterrows():
+        color = (40, 180, 99) if row[1] > 0 else (203, 67, 53)
+        pdf.set_text_color(0)
+        pdf.cell(100, 8, f"{row[0]}:", 0)
+        pdf.set_text_color(*color)
+        pdf.cell(0, 8, f"{round(row[1], 2)} EUR", 0, 1)
+
+    return pdf.output()
 
 # --- INTERFAZ STREAMLIT ---
-st.set_page_config(page_title="Energetika Pro", layout="wide")
+st.set_page_config(page_title="Energetika | Generador de Informes", layout="centered")
 
-col1, col2 = st.columns([1, 4])
-with col1:
-    if os.path.exists("Logo_Energetika.jpg"):
-        st.image("Logo_Energetika.jpg", width=150)
-with col2:
-    st.title("Sistema de Auditoría Energética")
+st.title("📄 Generador de Informes Energetika")
+st.write("Sube el archivo Excel generado por el comparador para crear el PDF para el cliente.")
 
-uploaded_file = st.file_uploader("Sube la factura del cliente (PDF)", type="pdf")
+archivo_excel = st.file_uploader("Cargar Excel (estudio_ahorro_energetico.xlsx)", type="xlsx")
 
-if uploaded_file:
-    datos = extraer_datos_factura(uploaded_file)
-    
-    st.subheader("📋 Datos detectados")
-    # Permitir corrección manual antes de generar el PDF
-    col_a, col_b, col_c = st.columns(3)
-    titular = col_a.text_input("Titular", datos["Titular"])
-    total_actual = col_b.number_input("Total Factura Actual (€)", value=datos["Total"])
-    cups = col_c.text_input("CUPS", datos["CUPS"])
-
-    if st.button("🚀 Generar Informe de Ahorro para Cliente"):
-        pdf = AuditoriaPDF()
-        pdf.add_page()
+if archivo_excel:
+    try:
+        # Leer las dos pestañas necesarias
+        df_detalle = pd.read_excel(archivo_excel, sheet_name='Detalle')
+        df_ranking = pd.read_excel(archivo_excel, sheet_name='Ranking')
         
-        # Cuerpo del informe
-        pdf.set_font("Arial", 'B', 12)
-        pdf.cell(0, 10, f"CLIENTE: {titular}", ln=True)
-        pdf.set_font("Arial", '', 11)
-        pdf.cell(0, 7, f"CUPS: {cups}", ln=True)
-        pdf.ln(5)
-
-        # Resumen de Consumo
-        pdf.set_fill_color(240, 240, 240)
-        pdf.set_font("Arial", 'B', 11)
-        pdf.cell(0, 10, " RESUMEN DE CONSUMO ANALIZADO", ln=True, fill=True)
-        pdf.set_font("Arial", '', 10)
-        pdf.cell(60, 8, f"Potencia Contratada: {datos['Potencia']} kW", ln=True)
-        pdf.cell(60, 8, f"Consumo Punta: {datos['Punta']} kWh")
-        pdf.cell(60, 8, f"Consumo Llano: {datos['Llano']} kWh")
-        pdf.cell(60, 8, f"Consumo Valle: {datos['Valle']} kWh", ln=True)
-        pdf.ln(10)
-
-        # Tabla de Comparativa (Simulada para el ejemplo)
-        pdf.set_font("Arial", 'B', 11)
-        pdf.set_fill_color(46, 204, 113)
-        pdf.set_text_color(255)
-        pdf.cell(90, 10, " Concepto", 1, 0, 'L', True)
-        pdf.cell(50, 10, " Factura Actual", 1, 0, 'C', True)
-        pdf.cell(50, 10, " Propuesta Energetika", 1, 1, 'C', True)
+        st.success("✅ Excel cargado correctamente")
         
-        pdf.set_text_color(0)
-        pdf.set_font("Arial", '', 10)
-        pdf.cell(90, 10, " Importe Total del Periodo", 1)
-        pdf.cell(50, 10, f" {total_actual} EUR", 1, 0, 'C')
-        pdf.cell(50, 10, f" {round(total_actual * 0.82, 2)} EUR", 1, 1, 'C') # Ejemplo 18% ahorro
-
-        pdf.ln(15)
-        pdf.set_font("Arial", 'B', 12)
-        pdf.set_text_color(30, 130, 70)
-        ahorro_estimado = round(total_actual * 0.18, 2)
-        pdf.cell(0, 10, f"AHORRO MENSUAL ESTIMADO: {ahorro_estimado} EUR", ln=True, align='C')
-
-        # Generar descarga
-        pdf_output = pdf.output()
-        st.download_button(
-            label="📥 Descargar Auditoría PDF",
-            data=bytes(pdf_output),
-            file_name=f"Auditoria_{titular.replace(' ', '_')}.pdf",
-            mime="application/pdf"
+        if st.button("🎨 Generar PDF Profesional"):
+            with st.spinner("Creando informe..."):
+                pdf_bytes = generar_pdf(df_detalle, df_ranking)
+                
+                st.download_button(
+                    label="📥 Descargar Informe PDF para el Cliente",
+                    data=bytes(pdf_bytes),
+                    file_name=f"Informe_Ahorro_Energetika_{datetime.now().strftime('%Y%m%d')}.pdf",
+                    mime="application/pdf"
+                )
+    except Exception as e:
+        st.error(f"Error al procesar el Excel: {e}. Asegúrate de que las pestañas se llamen 'Detalle' y 'Ranking'.")
         )
