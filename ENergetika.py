@@ -62,8 +62,8 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         pdf.ln(5)
 
         # 2. TABLA 1: CONSUMOS
-        pdf.set_text_color(0)
         pdf.set_font('Arial', 'B', 10)
+        pdf.set_text_color(0)
         pdf.cell(0, 10, "1. RESUMEN DE CONSUMOS POR MESES ANALIZADOS", ln=True)
         
         pdf.set_x(30)
@@ -86,7 +86,7 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         
         pdf.ln(8)
 
-        # 3. TABLA 2 Y LÓGICA DE GRÁFICA
+        # 3. TABLA 2 Y GRÁFICA
         pdf.set_font('Arial', 'B', 10)
         pdf.cell(0, 10, "2. COMPARATIVA DE COSTES Y AHORRO MENSUAL", ln=True)
         
@@ -122,19 +122,19 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
                 pdf.cell(40, 7, f" {round(ahorro_mes, 2)} EUR", 1, 1, 'R')
             except: continue
 
-        # --- GENERACIÓN DE GRÁFICA ---
+        # GENERAR GRÁFICA
         fig, ax = plt.subplots(figsize=(8, 4))
         colores = ['#2ecc71' if x >= 0 else '#e74c3c' for x in ahorros_grafica]
         ax.bar(meses_grafica, ahorros_grafica, color=colores, edgecolor='black', alpha=0.8)
         ax.axhline(0, color='black', linewidth=0.8)
-        ax.set_ylabel('Ahorro (€)', fontsize=10)
-        ax.set_title(f'Ahorro Mensual Estimado', fontsize=12)
+        ax.set_ylabel('Ahorro (€)')
+        ax.set_title(f'Ahorro Mensual Estimado')
         plt.xticks(rotation=45)
         plt.tight_layout()
         
-        grafica_path = "temp_grafica.png"
+        grafica_path = "temp_plot.png"
         fig.savefig(grafica_path, dpi=300)
-        plt.close(fig) # Cerramos la figura para liberar memoria
+        plt.close(fig) 
         
         pdf.ln(5)
         pdf.image(grafica_path, x=45, w=120)
@@ -142,6 +142,7 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
 
         # 4. TABLA 3: TOP 5
         pdf.set_font('Arial', 'B', 10)
+        pdf.set_text_color(0)
         pdf.cell(0, 10, "3. COMPARATIVA CON OTRAS OPCIONES DE MERCADO", ln=True)
         pdf.set_x(35)
         pdf.set_fill_color(20, 50, 100)
@@ -161,15 +162,15 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
 
         pdf.ln(10)
 
-        # 5. CONCLUSIÓN FINAL EN TABLA
+        # 5. TABLA FINAL
+        num_facturas = len(lista_fechas)
+        ahorro_anual = (ahorro_total_periodo / num_facturas) * 12 if num_facturas > 0 else 0
+
         pdf.set_fill_color(230, 240, 255)
         pdf.set_font('Arial', 'B', 14)
         pdf.cell(0, 15, " CONCLUSIÓN Y RECOMENDACIÓN FINAL", ln=True, fill=True, align='C')
         pdf.ln(5)
-
-        num_facturas = len(lista_fechas)
-        ahorro_anual = (ahorro_total_periodo / num_facturas) * 12 if num_facturas > 0 else 0
-
+        
         pdf.set_x(20)
         pdf.set_font('Arial', '', 11)
         pdf.multi_cell(170, 8, "Tras analizar su historial de consumo, la opción más eficiente para su suministro es la tarifa:", border='TLR', align='C')
@@ -182,12 +183,12 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         pdf.set_text_color(34, 139, 34)
         pdf.cell(170, 12, f"AHORRO ANUAL ESTIMADO: {round(float(ahorro_anual), 2)} EUR / AÑO", border='BLR', ln=True, align='C')
 
-        return pdf.output()
+        return pdf.output(dest='S').encode('latin-1')
     except Exception as e:
-        st.error(f"Error al generar el PDF: {e}")
+        st.error(f"Error técnico: {e}")
         return None
 
-# --- INTERFAZ STREAMLIT ---
+# --- INTERFAZ ---
 st.title("📄 Generador Pro | Energetika")
 
 col1, col2 = st.columns(2)
@@ -205,16 +206,16 @@ if archivo:
         df_ran = pd.read_excel(archivo, sheet_name="Ranking Ahorro")
         df_con = pd.read_excel(archivo, sheet_name="Datos Facturas Originales")
         
-        st.success("✅ Excel cargado con éxito.")
+        st.success("✅ Excel cargado.")
         
-        if st.button("🚀 Generar Informe Completo"):
-            pdf_out = generar_pdf(df_det, df_ran, df_con, nombre_cliente, direccion_cliente, compania_actual_manual)
-            if pdf_out:
+        if st.button("🚀 Generar PDF"):
+            pdf_bytes = generar_pdf(df_det, df_ran, df_con, nombre_cliente, direccion_cliente, compania_actual_manual)
+            if pdf_bytes:
                 st.download_button(
-                    label="📥 Descargar Auditoría Energetika",
-                    data=bytes(pdf_out),
+                    label="📥 Descargar Informe",
+                    data=pdf_bytes,
                     file_name=f"Auditoria_{nombre_cliente.replace(' ', '_')}.pdf",
                     mime="application/pdf"
                 )
     except Exception as e:
-        st.error(f"Error: Asegúrate de que el Excel tiene las pestañas correctas.")
+        st.error("Error en las pestañas del Excel.")
