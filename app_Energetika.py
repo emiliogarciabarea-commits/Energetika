@@ -1,11 +1,10 @@
-
 import streamlit as st
 import pandas as pd
 import os
 from fpdf import FPDF
 from datetime import datetime
 
-# --- CONFIGURACIÓN ---
+# --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(page_title="Energetika Pro", layout="centered")
 
 class EnergetikaPDF(FPDF):
@@ -25,15 +24,15 @@ class EnergetikaPDF(FPDF):
         self.set_y(-15)
         self.set_font('Arial', 'I', 8)
         self.set_text_color(128)
-        self.cell(0, 10, 'Documento generado por Energetika basado en análisis de datos reales.', 0, 0, 'C')
+        self.cell(0, 10, 'Documento generado por Energetika.', 0, 0, 'C')
 
 def generar_pdf(df_detalle, df_ranking):
     try:
         pdf = EnergetikaPDF()
         pdf.add_page()
 
-        # 1. ENCONTRAR GANADORA
-        # Buscamos la columna de Ahorro y Compañía por posición para evitar errores de tildes
+        # 1. ENCONTRAR MEJOR OFERTA (Basado en tu Excel real)
+        # Filtramos la factura actual
         ranking_real = df_ranking[~df_ranking.iloc[:, 0].str.contains("ACTUAL", na=False)]
         ganadora_row = ranking_real.sort_values(by=ranking_real.columns[1], ascending=False).iloc[0]
         
@@ -41,12 +40,10 @@ def generar_pdf(df_detalle, df_ranking):
         ahorro_total = ganadora_row.iloc[1]
 
         # 2. CÁLCULO ANUAL
-        # Usamos iloc[0] para asegurar que cogemos el nombre de la columna de fecha
-        col_fecha = df_detalle.columns[0] 
-        num_facturas = df_detalle[col_fecha].nunique()
+        num_facturas = df_detalle['Mes/Fecha'].nunique()
         ahorro_anual = (ahorro_total / num_facturas) * 12 if num_facturas > 0 else 0
 
-        # 3. DISEÑO DEL PDF
+        # 3. BLOQUE RECOMENDACIÓN
         pdf.set_fill_color(230, 240, 255)
         pdf.set_font('Arial', 'B', 14)
         pdf.cell(0, 15, f" RECOMENDACIÓN: {str(nombre_ganadora).upper()}", ln=True, fill=True, align='C')
@@ -59,7 +56,7 @@ def generar_pdf(df_detalle, df_ranking):
         pdf.cell(0, 12, f"AHORRO ANUAL ESTIMADO: {round(float(ahorro_anual), 2)} EUR / AÑO", ln=True)
         pdf.ln(10)
 
-        # 4. TABLA DE DETALLE
+        # 4. TABLA COMPARATIVA
         pdf.set_fill_color(50, 50, 50)
         pdf.set_text_color(255)
         pdf.set_font('Arial', 'B', 9)
@@ -71,12 +68,12 @@ def generar_pdf(df_detalle, df_ranking):
         pdf.set_text_color(0)
         pdf.set_font('Arial', '', 9)
         
-        for fecha in df_detalle[col_fecha].unique():
-            mes_df = df_detalle[df_detalle[col_fecha] == fecha]
+        # Iteramos por las fechas reales del Excel
+        for fecha in df_detalle['Mes/Fecha'].unique():
+            mes_df = df_detalle[df_detalle['Mes/Fecha'] == fecha]
             try:
-                # Buscamos por texto "ACTUAL" y por nombre de ganadora
-                coste_act = mes_df[mes_df.iloc[:, 1].str.contains("ACTUAL", na=False)].iloc[0, 2]
-                coste_pro = mes_df[mes_df.iloc[:, 1] == nombre_ganadora].iloc[0, 2]
+                coste_act = mes_df[mes_df['Compañía/Tarifa'].str.contains("ACTUAL", na=False)]['Coste (€)'].values[0]
+                coste_pro = mes_df[mes_df['Compañía/Tarifa'] == nombre_ganadora]['Coste (€)'].values[0]
                 ahorro_m = coste_act - coste_pro
 
                 pdf.cell(50, 8, f" {fecha}", 1)
@@ -88,36 +85,31 @@ def generar_pdf(df_detalle, df_ranking):
 
         return pdf.output()
     except Exception as e:
-        st.error(f"Error detallado en PDF: {e}")
+        st.error(f"Error técnico al crear el PDF: {e}")
         return None
 
-# --- INTERFAZ ---
+# --- INTERFAZ USUARIO ---
 st.title("📄 Generador de Informes Energetika")
+st.write("Sube el Excel de resultados para generar la auditoría.")
 
-archivo = st.file_uploader("Sube el archivo Excel", type=["xlsx"])
+archivo = st.file_uploader("Sube estudio_ahorro_energetico.xlsx", type=["xlsx"])
 
 if archivo:
     try:
-        xl = pd.ExcelFile(archivo)
-        nombres_hojas = xl.sheet_names
+        # Cargamos las pestañas con los nombres que vimos en tus archivos
+        df_det = pd.read_excel(archivo, sheet_name="Detalle Comparativa")
+        df_ran = pd.read_excel(archivo, sheet_name="Ranking Ahorro")
         
-        # Lógica para encontrar las hojas aunque el nombre no sea exacto
-        hoja_det = [h for h in nombres_hojas if "Detalle" in h][0]
-        hoja_ran = [h for h in nombres_hojas if "Ranking" in h][0]
+        st.success("✅ Excel cargado correctamente.")
         
-        df_det = pd.read_excel(archivo, sheet_name=hoja_det)
-        df_ran = pd.read_excel(archivo, sheet_name=hoja_ran)
-        
-        st.success(f"Cargadas hojas: {hoja_det} y {hoja_ran}")
-        
-        if st.button("🚀 Crear Auditoría PDF"):
-            res_pdf = generar_pdf(df_det, df_ran)
-            if res_pdf:
+        if st.button("🚀 Crear PDF para Cliente"):
+            res = generar_pdf(df_det, df_ran)
+            if res:
                 st.download_button(
-                    label="📥 Descargar PDF",
-                    data=bytes(res_pdf),
-                    file_name=f"Auditoria_Energetika_{datetime.now().strftime('%Y%m%d')}.pdf",
+                    label="📥 Descargar Auditoría PDF",
+                    data=bytes(res),
+                    file_name="Auditoria_Energetika.pdf",
                     mime="application/pdf"
                 )
     except Exception as e:
-        st.error(f"Error al leer el Excel: {e}. Asegúrate de que el Excel tenga las pestañas de Detalle y Ranking.")
+        st.error(f"Error al leer el Excel: {e}. Revisa los nombres de las pestañas.")
