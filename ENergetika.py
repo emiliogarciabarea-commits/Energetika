@@ -136,10 +136,10 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         pdf.set_font('Arial', '', 12)
         pdf.multi_cell(0, 10, f"Tras analizar su historial de consumo, la opción más eficiente para su suministro es la tarifa:", align='C')
         
-        # --- BLOQUE CENTRADO ---
-        pdf.set_font('Arial', 'B', 16)
+        # --- BLOQUE CENTRADO CON LETRA MÁS PEQUEÑA (TAMAÑO 12) ---
+        pdf.set_font('Arial', 'B', 12)
         pdf.set_text_color(20, 50, 100)
-        pdf.cell(0, 15, f"{str(nombre_ganadora).upper()}", ln=True, align='C')
+        pdf.cell(0, 12, f"{str(nombre_ganadora).upper()}", ln=True, align='C')
         
         pdf.ln(5)
         
