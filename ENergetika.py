@@ -2,6 +2,7 @@
 import streamlit as st
 import pandas as pd
 import os
+import matplotlib.pyplot as plt
 from fpdf import FPDF
 from datetime import datetime
 
@@ -36,6 +37,7 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         ranking_real = df_ranking[~df_ranking.iloc[:, 0].str.contains("ACTUAL", na=False)]
         ranking_ordenado = ranking_real.sort_values(by=ranking_real.columns[1], ascending=False)
         ganadora_row = ranking_ordenado.iloc[0]
+        
         nombre_ganadora = ganadora_row.iloc[0]
         ahorro_total_periodo = ganadora_row.iloc[1]
         lista_fechas = df_consumos['Fecha'].unique()
@@ -46,8 +48,12 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         pdf.cell(45, 8, "Cliente:", 0)
         pdf.set_font('Arial', '', 11)
         pdf.cell(0, 8, nombre_cliente, ln=True)
+        
+        pdf.set_font('Arial', 'B', 11)
         pdf.cell(45, 8, "Dirección:", 0)
+        pdf.set_font('Arial', '', 11)
         pdf.cell(0, 8, direccion_cliente, ln=True)
+
         pdf.set_font('Arial', 'B', 11)
         pdf.cell(45, 8, "Suministro Actual:", 0)
         pdf.set_font('Arial', '', 11)
@@ -59,6 +65,7 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         pdf.set_text_color(0)
         pdf.set_font('Arial', 'B', 10)
         pdf.cell(0, 10, "1. RESUMEN DE CONSUMOS POR MESES ANALIZADOS", ln=True)
+        
         pdf.set_x(30)
         pdf.set_fill_color(100, 100, 100)
         pdf.set_text_color(255)
@@ -66,6 +73,7 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         pdf.cell(45, 7, " Mes de Factura", 1, 0, 'C', True)
         pdf.cell(50, 7, " Consumo Total (kWh)", 1, 0, 'C', True)
         pdf.cell(55, 7, " Potencia Contratada", 1, 1, 'C', True)
+
         pdf.set_text_color(0)
         pdf.set_font('Arial', '', 8)
         for fecha in lista_fechas:
@@ -75,11 +83,13 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
             pdf.cell(45, 7, f" {fecha}", 1)
             pdf.cell(50, 7, f" {round(total_kwh, 2)} kWh", 1, 0, 'C')
             pdf.cell(55, 7, f" {row['Potencia (kW)']} kW", 1, 1, 'C')
+        
         pdf.ln(8)
 
-        # 3. TABLA 2: DETALLE DE AHORRO
+        # 3. TABLA 2 Y LÓGICA DE GRÁFICA
         pdf.set_font('Arial', 'B', 10)
-        pdf.cell(0, 10, "2. COMPARATIVA DE COSTES: ACTUAL VS RECOMENDADA", ln=True)
+        pdf.cell(0, 10, "2. COMPARATIVA DE COSTES Y AHORRO MENSUAL", ln=True)
+        
         pdf.set_x(25)
         pdf.set_fill_color(50, 50, 50)
         pdf.set_text_color(255)
@@ -88,20 +98,48 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         pdf.cell(40, 7, " Coste Actual", 1, 0, 'C', True)
         pdf.cell(40, 7, " Coste Propuesta", 1, 0, 'C', True)
         pdf.cell(40, 7, " Ahorro", 1, 1, 'C', True)
+
         pdf.set_text_color(0)
         pdf.set_font('Arial', '', 8)
+        
+        meses_grafica = []
+        ahorros_grafica = []
+
         for fecha in lista_fechas:
             mes_data = df_detalle[df_detalle['Mes/Fecha'] == fecha]
             try:
                 c_act = mes_data[mes_data['Compañía/Tarifa'].str.contains("ACTUAL", na=False)]['Coste (€)'].values[0]
                 c_pro = mes_data[mes_data['Compañía/Tarifa'] == nombre_ganadora]['Coste (€)'].values[0]
+                ahorro_mes = c_act - c_pro
+                
+                meses_grafica.append(str(fecha))
+                ahorros_grafica.append(ahorro_mes)
+
                 pdf.set_x(25)
                 pdf.cell(40, 7, f" {fecha}", 1)
                 pdf.cell(40, 7, f" {round(c_act, 2)} EUR", 1, 0, 'R')
                 pdf.cell(40, 7, f" {round(c_pro, 2)} EUR", 1, 0, 'R')
-                pdf.cell(40, 7, f" {round(c_act - c_pro, 2)} EUR", 1, 1, 'R')
+                pdf.cell(40, 7, f" {round(ahorro_mes, 2)} EUR", 1, 1, 'R')
             except: continue
-        pdf.ln(8)
+
+        # --- GENERACIÓN DE GRÁFICA ---
+        plt.figure(figsize=(8, 4))
+        colores = ['#2ecc71' if x >= 0 else '#e74c3c' for x in ahorros_grafica]
+        plt.bar(meses_grafica, ahorros_grafica, color=colores, edgecolor='black', alpha=0.8)
+        plt.axhline(0, color='black', linewidth=0.8)
+        plt.ylabel('Ahorro (€)', fontsize=10)
+        plt.title(f'Proyección de Ahorro Mensual con {nombre_ganadora}', fontsize=12, pad=15)
+        plt.xticks(rotation=45)
+        plt.grid(axis='y', linestyle='--', alpha=0.6)
+        plt.tight_layout()
+        
+        grafica_path = "temp_grafica.png"
+        plt.savefig(grafica_path, dpi=300)
+        plt.close()
+        
+        pdf.ln(5)
+        pdf.image(grafica_path, x=45, w=120)
+        pdf.ln(5)
 
         # 4. TABLA 3: TOP 5
         pdf.set_font('Arial', 'B', 10)
@@ -112,6 +150,7 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         pdf.set_font('Arial', 'B', 8)
         pdf.cell(80, 7, " Compañía / Tarifa", 1, 0, 'L', True)
         pdf.cell(60, 7, " Ahorro Total Detectado", 1, 1, 'C', True)
+
         pdf.set_text_color(0)
         pdf.set_font('Arial', '', 8)
         for _, row in ranking_ordenado.head(5).iterrows():
@@ -120,15 +159,18 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
             pdf.set_text_color(34, 139, 34)
             pdf.cell(60, 7, f" +{round(row.iloc[1], 2)} EUR", 1, 1, 'C')
             pdf.set_text_color(0)
-        pdf.ln(12)
+
+        pdf.ln(10)
 
         # 5. CONCLUSIÓN FINAL EN TABLA
         pdf.set_fill_color(230, 240, 255)
         pdf.set_font('Arial', 'B', 14)
         pdf.cell(0, 15, " CONCLUSIÓN Y RECOMENDACIÓN FINAL", ln=True, fill=True, align='C')
         pdf.ln(5)
+
         num_facturas = len(lista_fechas)
         ahorro_anual = (ahorro_total_periodo / num_facturas) * 12 if num_facturas > 0 else 0
+
         pdf.set_x(20)
         pdf.set_font('Arial', '', 11)
         pdf.multi_cell(170, 8, "Tras analizar su historial de consumo, la opción más eficiente para su suministro es la tarifa:", border='TLR', align='C')
@@ -164,44 +206,8 @@ if archivo:
         df_ran = pd.read_excel(archivo, sheet_name="Ranking Ahorro")
         df_con = pd.read_excel(archivo, sheet_name="Datos Facturas Originales")
         
-        # --- LÓGICA DE LA GRÁFICA ---
-        # 1. Obtener la ganadora
-        ranking_real = df_ran[~df_ran.iloc[:, 0].str.contains("ACTUAL", na=False)]
-        nombre_ganadora = ranking_real.sort_values(by=ranking_real.columns[1], ascending=False).iloc[0, 0]
+        st.success("✅ Excel cargado con éxito.")
         
-        # 2. Preparar datos para la gráfica
-        datos_grafica = []
-        for fecha in df_det['Mes/Fecha'].unique():
-            mes_data = df_det[df_det['Mes/Fecha'] == fecha]
-            try:
-                c_act = mes_data[mes_data['Compañía/Tarifa'].str.contains("ACTUAL", na=False)]['Coste (€)'].values[0]
-                c_pro = mes_data[mes_data['Compañía/Tarifa'] == nombre_ganadora]['Coste (€)'].values[0]
-                ahorro = c_act - c_pro
-                
-                # Formatear fecha a MM/YY
-                fecha_dt = pd.to_datetime(fecha)
-                fecha_formateada = fecha_dt.strftime('%m/%y')
-                
-                datos_grafica.append({"Mes": fecha_formateada, "Ahorro (€)": ahorro})
-            except: continue
-        
-        df_plot = pd.DataFrame(datos_grafica)
-        
-        # 3. Mostrar Gráfica en Streamlit
-        st.subheader("Visualización de Ahorro Mensual")
-        # Color: Verde si ahorro > 0, Rojo si < 0
-        df_plot['color'] = ['#2ecc71' if x > 0 else '#e74c3c' for x in df_plot['Ahorro (€)']]
-        
-        st.bar_chart(df_plot.set_index('Mes')['Ahorro (€)'], color=None) 
-        # Nota: st.bar_chart es sencillo. Para colores específicos por barra usamos st.altair_chart
-        import altair as alt
-        chart = alt.Chart(df_plot).mark_bar().encode(
-            x=alt.X('Mes:N', sort=None),
-            y='Ahorro (€):Q',
-            color=alt.Color('color:N', scale=None)
-        ).properties(width=600, height=400)
-        st.altair_chart(chart, use_container_width=True)
-
         if st.button("🚀 Generar Informe Completo"):
             pdf_out = generar_pdf(df_det, df_ran, df_con, nombre_cliente, direccion_cliente, compania_actual_manual)
             if pdf_out:
@@ -212,4 +218,4 @@ if archivo:
                     mime="application/pdf"
                 )
     except Exception as e:
-        st.error(f"Error en el procesamiento: {e}")
+        st.error(f"Error: Asegúrate de que el Excel tiene las pestañas correctas.")
