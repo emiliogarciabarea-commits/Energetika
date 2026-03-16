@@ -2,6 +2,8 @@
 import streamlit as st
 import pandas as pd
 import os
+import matplotlib
+matplotlib.use('Agg')  # <--- CRUCIAL: Fuerza el backend para servidores web
 import matplotlib.pyplot as plt
 from fpdf import FPDF
 from datetime import datetime
@@ -110,7 +112,7 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
             try:
                 c_act = mes_data[mes_data['Compañía/Tarifa'].str.contains("ACTUAL", na=False)]['Coste (€)'].values[0]
                 c_pro = mes_data[mes_data['Compañía/Tarifa'] == nombre_ganadora]['Coste (€)'].values[0]
-                ahorro_mes = c_act - c_pro
+                ahorro_mes = float(c_act - c_pro)
                 
                 meses_grafica.append(str(fecha))
                 ahorros_grafica.append(ahorro_mes)
@@ -122,20 +124,20 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
                 pdf.cell(40, 7, f" {round(ahorro_mes, 2)} EUR", 1, 1, 'R')
             except: continue
 
-        # --- GENERACIÓN DE GRÁFICA ---
-        plt.figure(figsize=(8, 4))
+        # --- GENERACIÓN DE GRÁFICA CORREGIDA ---
+        plt.clf() # Limpia cualquier dibujo previo
+        fig, ax = plt.subplots(figsize=(8, 4))
         colores = ['#2ecc71' if x >= 0 else '#e74c3c' for x in ahorros_grafica]
-        plt.bar(meses_grafica, ahorros_grafica, color=colores, edgecolor='black', alpha=0.8)
-        plt.axhline(0, color='black', linewidth=0.8)
-        plt.ylabel('Ahorro (€)', fontsize=10)
-        plt.title(f'Proyección de Ahorro Mensual con {nombre_ganadora}', fontsize=12, pad=15)
+        ax.bar(meses_grafica, ahorros_grafica, color=colores, edgecolor='black', alpha=0.8)
+        ax.axhline(0, color='black', linewidth=0.8)
+        ax.set_ylabel('Ahorro (€)', fontsize=10)
+        ax.set_title(f'Proyección de Ahorro Mensual con {nombre_ganadora}', fontsize=12, pad=15)
         plt.xticks(rotation=45)
         plt.grid(axis='y', linestyle='--', alpha=0.6)
-        plt.tight_layout()
         
         grafica_path = "temp_grafica.png"
-        plt.savefig(grafica_path, dpi=300)
-        plt.close()
+        fig.savefig(grafica_path, dpi=300, bbox_inches='tight')
+        plt.close(fig) # Cierra la figura para liberar memoria
         
         pdf.ln(5)
         pdf.image(grafica_path, x=45, w=120)
