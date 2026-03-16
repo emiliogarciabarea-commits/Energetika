@@ -27,7 +27,7 @@ class EnergetikaPDF(FPDF):
         self.set_text_color(128)
         self.cell(0, 10, 'Informe generado por Energetika - Auditoría Profesional.', 0, 0, 'C')
 
-def generar_pdf(df_detalle, df_ranking, df_consumos):
+def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente):
     try:
         pdf = EnergetikaPDF()
         pdf.add_page()
@@ -40,8 +40,26 @@ def generar_pdf(df_detalle, df_ranking, df_consumos):
         nombre_ganadora = ganadora_row.iloc[0]
         ahorro_total_periodo = ganadora_row.iloc[1]
         
-        # Sincronización de fechas: Usamos el orden de la tabla de consumos
+        # Detectar Compañía Actual
+        compania_actual_row = df_detalle[df_detalle['Compañía/Tarifa'].str.contains("ACTUAL", na=False)]
+        compania_actual = compania_actual_row['Compañía/Tarifa'].iloc[0].replace("📍 ", "") if not compania_actual_row.empty else "No detectada"
+
+        # Sincronización de fechas
         lista_fechas = df_consumos['Fecha'].unique()
+
+        # --- NUEVA SECCIÓN: DATOS DEL CLIENTE ---
+        pdf.set_font('Arial', 'B', 12)
+        pdf.set_text_color(0)
+        pdf.cell(40, 10, "Cliente:", 0)
+        pdf.set_font('Arial', '', 12)
+        pdf.cell(0, 10, nombre_cliente, ln=True)
+        
+        pdf.set_font('Arial', 'B', 12)
+        pdf.cell(40, 10, "Suministro Actual:", 0)
+        pdf.set_font('Arial', '', 12)
+        pdf.set_text_color(200, 0, 0) # Rojo suave para la actual
+        pdf.cell(0, 10, compania_actual, ln=True)
+        pdf.ln(5)
 
         # 2. TABLA 1: RESUMEN DE CONSUMOS
         pdf.set_text_color(0)
@@ -66,7 +84,7 @@ def generar_pdf(df_detalle, df_ranking, df_consumos):
         
         pdf.ln(10)
 
-        # 3. TABLA 2: DETALLE DE AHORRO (MISMO ORDEN QUE TABLA 1)
+        # 3. TABLA 2: DETALLE DE AHORRO
         pdf.set_font('Arial', 'B', 11)
         pdf.cell(0, 10, "2. COMPARATIVA DE COSTES: ACTUAL VS RECOMENDADA", ln=True)
         pdf.set_fill_color(50, 50, 50)
@@ -109,7 +127,7 @@ def generar_pdf(df_detalle, df_ranking, df_consumos):
 
         pdf.ln(15)
 
-        # 5. CONCLUSIÓN Y RECOMENDACIÓN FINAL (AL FINAL DEL INFORME)
+        # 5. CONCLUSIÓN Y RECOMENDACIÓN FINAL
         pdf.set_fill_color(230, 240, 255)
         pdf.set_font('Arial', 'B', 14)
         pdf.cell(0, 15, " CONCLUSIÓN Y RECOMENDACIÓN FINAL", ln=True, fill=True, align='C')
@@ -123,7 +141,6 @@ def generar_pdf(df_detalle, df_ranking, df_consumos):
         
         pdf.ln(5)
         
-        # Cálculo de ahorro anual
         num_facturas = len(lista_fechas)
         ahorro_anual = (ahorro_total_periodo / num_facturas) * 12 if num_facturas > 0 else 0
 
@@ -139,6 +156,8 @@ def generar_pdf(df_detalle, df_ranking, df_consumos):
 # --- INTERFAZ STREAMLIT ---
 st.title("📄 Generador Pro | Energetika")
 
+nombre_cliente = st.text_input("Introduce el nombre del cliente:", "Cliente Energetika")
+
 archivo = st.file_uploader("Sube el archivo Excel", type=["xlsx"])
 
 if archivo:
@@ -150,12 +169,12 @@ if archivo:
         st.success("✅ Excel cargado con éxito.")
         
         if st.button("🚀 Generar Informe Completo"):
-            pdf_out = generar_pdf(df_det, df_ran, df_con)
+            pdf_out = generar_pdf(df_det, df_ran, df_con, nombre_cliente)
             if pdf_out:
                 st.download_button(
                     label="📥 Descargar Auditoría Energetika",
                     data=bytes(pdf_out),
-                    file_name=f"Auditoria_{datetime.now().strftime('%Y%m%d')}.pdf",
+                    file_name=f"Auditoria_{nombre_cliente.replace(' ', '_')}.pdf",
                     mime="application/pdf"
                 )
     except Exception as e:
