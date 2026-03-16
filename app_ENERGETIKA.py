@@ -130,4 +130,3 @@ if archivo_excel:
                 )
     except Exception as e:
         st.error(f"Error al procesar el Excel: {e}. Asegúrate de que las pestañas se llamen 'Detalle' y 'Ranking'.")
-        )
