@@ -4,4 +4,3 @@ pandas
 openpyxl
 fpdf2
 matplotlib
-Plaintext
