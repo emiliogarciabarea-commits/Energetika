@@ -32,32 +32,18 @@ def generar_pdf(df_detalle, df_ranking, df_consumos):
         pdf = EnergetikaPDF()
         pdf.add_page()
 
-        # 1. IDENTIFICAR GANADORA
+        # 1. PROCESAMIENTO DE DATOS
         ranking_real = df_ranking[~df_ranking.iloc[:, 0].str.contains("ACTUAL", na=False)]
         ranking_ordenado = ranking_real.sort_values(by=ranking_real.columns[1], ascending=False)
         ganadora_row = ranking_ordenado.iloc[0]
         
         nombre_ganadora = ganadora_row.iloc[0]
-        ahorro_total = ganadora_row.iloc[1]
+        ahorro_total_periodo = ganadora_row.iloc[1]
+        
+        # Sincronización de fechas: Usamos el orden de la tabla de consumos
+        lista_fechas = df_consumos['Fecha'].unique()
 
-        # 2. CÁLCULOS
-        num_facturas = df_detalle['Mes/Fecha'].nunique()
-        ahorro_anual = (ahorro_total / num_facturas) * 12 if num_facturas > 0 else 0
-
-        # 3. CABECERA DE RESULTADOS
-        pdf.set_fill_color(230, 240, 255)
-        pdf.set_font('Arial', 'B', 14)
-        pdf.cell(0, 15, f" RECOMENDACIÓN: {str(nombre_ganadora).upper()}", ln=True, fill=True, align='C')
-        pdf.ln(5)
-
-        pdf.set_font('Arial', 'B', 12)
-        pdf.set_text_color(34, 139, 34)
-        pdf.cell(0, 10, f"AHORRO TOTAL EN EL PERIODO: {round(float(ahorro_total), 2)} EUR", ln=True)
-        pdf.set_font('Arial', 'B', 15)
-        pdf.cell(0, 12, f"AHORRO ANUAL ESTIMADO: {round(float(ahorro_anual), 2)} EUR / AÑO", ln=True)
-        pdf.ln(10)
-
-        # 4. TABLA: RESUMEN DE CONSUMOS (NUEVA)
+        # 2. TABLA 1: RESUMEN DE CONSUMOS
         pdf.set_text_color(0)
         pdf.set_font('Arial', 'B', 11)
         pdf.cell(0, 10, "1. RESUMEN DE CONSUMOS POR MESES ANALIZADOS", ln=True)
@@ -71,17 +57,18 @@ def generar_pdf(df_detalle, df_ranking, df_consumos):
 
         pdf.set_text_color(0)
         pdf.set_font('Arial', '', 9)
-        for _, row in df_consumos.iterrows():
+        for fecha in lista_fechas:
+            row = df_consumos[df_consumos['Fecha'] == fecha].iloc[0]
             total_kwh = row['Consumo Punta (kWh)'] + row['Consumo Llano (kWh)'] + row['Consumo Valle (kWh)']
-            pdf.cell(60, 8, f" {row['Fecha']}", 1)
+            pdf.cell(60, 8, f" {fecha}", 1)
             pdf.cell(60, 8, f" {round(total_kwh, 2)} kWh", 1, 0, 'C')
             pdf.cell(70, 8, f" {row['Potencia (kW)']} kW", 1, 1, 'C')
         
         pdf.ln(10)
 
-        # 5. TABLA: COMPARATIVA DE AHORRO (MES A MES)
+        # 3. TABLA 2: DETALLE DE AHORRO (MISMO ORDEN QUE TABLA 1)
         pdf.set_font('Arial', 'B', 11)
-        pdf.cell(0, 10, "2. DETALLE DE AHORRO CON LA OPCIÓN RECOMENDADA", ln=True)
+        pdf.cell(0, 10, "2. COMPARATIVA DE COSTES: ACTUAL VS RECOMENDADA", ln=True)
         pdf.set_fill_color(50, 50, 50)
         pdf.set_text_color(255)
         pdf.cell(50, 8, " Periodo", 1, 0, 'C', True)
@@ -91,7 +78,7 @@ def generar_pdf(df_detalle, df_ranking, df_consumos):
 
         pdf.set_text_color(0)
         pdf.set_font('Arial', '', 9)
-        for fecha in df_detalle['Mes/Fecha'].unique():
+        for fecha in lista_fechas:
             mes_data = df_detalle[df_detalle['Mes/Fecha'] == fecha]
             try:
                 c_act = mes_data[mes_data['Compañía/Tarifa'].str.contains("ACTUAL", na=False)]['Coste (€)'].values[0]
@@ -104,9 +91,9 @@ def generar_pdf(df_detalle, df_ranking, df_consumos):
 
         pdf.ln(10)
 
-        # 6. TABLA: TOP 5 COMPAÑÍAS CON MÁS AHORRO (NUEVA)
+        # 4. TABLA 3: TOP 5 MEJORES ALTERNATIVAS
         pdf.set_font('Arial', 'B', 11)
-        pdf.cell(0, 10, "3. TOP 5 MEJORES ALTERNATIVAS DE MERCADO", ln=True)
+        pdf.cell(0, 10, "3. COMPARATIVA CON OTRAS OPCIONES DE MERCADO", ln=True)
         pdf.set_fill_color(20, 50, 100)
         pdf.set_text_color(255)
         pdf.cell(120, 8, " Compañía / Tarifa", 1, 0, 'L', True)
@@ -120,6 +107,30 @@ def generar_pdf(df_detalle, df_ranking, df_consumos):
             pdf.cell(70, 8, f" +{round(row.iloc[1], 2)} EUR", 1, 1, 'C')
             pdf.set_text_color(0)
 
+        pdf.ln(15)
+
+        # 5. CONCLUSIÓN Y RECOMENDACIÓN FINAL (AL FINAL DEL INFORME)
+        pdf.set_fill_color(230, 240, 255)
+        pdf.set_font('Arial', 'B', 14)
+        pdf.cell(0, 15, " CONCLUSIÓN Y RECOMENDACIÓN FINAL", ln=True, fill=True, align='C')
+        pdf.ln(5)
+
+        pdf.set_font('Arial', '', 12)
+        pdf.multi_cell(0, 10, f"Tras analizar su historial de consumo, la opción más eficiente para su suministro es la tarifa:")
+        pdf.set_font('Arial', 'B', 16)
+        pdf.set_text_color(20, 50, 100)
+        pdf.cell(0, 15, f"{str(nombre_ganadora).upper()}", ln=True, align='C')
+        
+        pdf.ln(5)
+        
+        # Cálculo de ahorro anual
+        num_facturas = len(lista_fechas)
+        ahorro_anual = (ahorro_total_periodo / num_facturas) * 12 if num_facturas > 0 else 0
+
+        pdf.set_font('Arial', 'B', 14)
+        pdf.set_text_color(34, 139, 34)
+        pdf.cell(0, 10, f"AHORRO ANUAL ESTIMADO: {round(float(ahorro_anual), 2)} EUR / AÑO", ln=True, align='C')
+
         return pdf.output()
     except Exception as e:
         st.error(f"Error al generar el PDF: {e}")
@@ -132,7 +143,6 @@ archivo = st.file_uploader("Sube el archivo Excel", type=["xlsx"])
 
 if archivo:
     try:
-        # Cargamos las 3 pestañas necesarias
         df_det = pd.read_excel(archivo, sheet_name="Detalle Comparativa")
         df_ran = pd.read_excel(archivo, sheet_name="Ranking Ahorro")
         df_con = pd.read_excel(archivo, sheet_name="Datos Facturas Originales")
@@ -149,4 +159,4 @@ if archivo:
                     mime="application/pdf"
                 )
     except Exception as e:
-        st.error(f"Error: Asegúrate de que el Excel tiene las pestañas: 'Detalle Comparativa', 'Ranking Ahorro' y 'Datos Facturas Originales'.")
+        st.error(f"Error: Asegúrate de que el Excel tiene las pestañas correctas.")
