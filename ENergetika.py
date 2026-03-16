@@ -162,9 +162,11 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
 
         pdf.ln(10)
 
-        # 5. TABLA FINAL
+        # 5. TABLA FINAL CON CÁLCULO DE IVA (21%)
         num_facturas = len(lista_fechas)
-        ahorro_anual = (ahorro_total_periodo / num_facturas) * 12 if num_facturas > 0 else 0
+        ahorro_anual_base = (ahorro_total_periodo / num_facturas) * 12 if num_facturas > 0 else 0
+        iva_ahorrado = ahorro_anual_base * 0.21
+        total_ahorro_iva = ahorro_anual_base + iva_ahorrado
 
         pdf.set_fill_color(230, 240, 255)
         pdf.set_font('Arial', 'B', 14)
@@ -178,10 +180,18 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         pdf.set_font('Arial', 'B', 12)
         pdf.set_text_color(20, 50, 100)
         pdf.cell(170, 10, f"{str(nombre_ganadora).upper()}", border='LR', ln=True, align='C')
+        
+        # Ahorro Anual (Base)
         pdf.set_x(20)
-        pdf.set_font('Arial', 'B', 12)
+        pdf.set_font('Arial', 'B', 11)
         pdf.set_text_color(34, 139, 34)
-        pdf.cell(170, 12, f"AHORRO ANUAL ESTIMADO: {round(float(ahorro_anual), 2)} EUR / AÑO", border='BLR', ln=True, align='C')
+        pdf.cell(170, 8, f"AHORRO ANUAL ESTIMADO (Base): {round(float(ahorro_anual_base), 2)} EUR / AÑO", border='LR', ln=True, align='C')
+        
+        # Ahorro Anual Total (con IVA 21%)
+        pdf.set_x(20)
+        pdf.set_font('Arial', 'B', 13)
+        pdf.set_text_color(34, 139, 34)
+        pdf.cell(170, 12, f"AHORRO TOTAL REAL (IVA 21% Incluido): {round(float(total_ahorro_iva), 2)} EUR / AÑO", border='BLR', ln=True, align='C')
 
         return pdf.output(dest='S').encode('latin-1')
     except Exception as e:
