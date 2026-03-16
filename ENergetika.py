@@ -2,6 +2,7 @@
 import streamlit as st
 import pandas as pd
 import os
+import matplotlib.pyplot as plt
 from fpdf import FPDF
 from datetime import datetime
 
@@ -36,10 +37,8 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         ranking_real = df_ranking[~df_ranking.iloc[:, 0].str.contains("ACTUAL", na=False)]
         ranking_ordenado = ranking_real.sort_values(by=ranking_real.columns[1], ascending=False)
         ganadora_row = ranking_ordenado.iloc[0]
-        
         nombre_ganadora = ganadora_row.iloc[0]
         ahorro_total_periodo = ganadora_row.iloc[1]
-        
         lista_fechas = df_consumos['Fecha'].unique()
 
         # --- SECCIÓN: DATOS DEL CLIENTE ---
@@ -48,12 +47,8 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         pdf.cell(45, 8, "Cliente:", 0)
         pdf.set_font('Arial', '', 11)
         pdf.cell(0, 8, nombre_cliente, ln=True)
-        
-        pdf.set_font('Arial', 'B', 11)
         pdf.cell(45, 8, "Dirección:", 0)
-        pdf.set_font('Arial', '', 11)
         pdf.cell(0, 8, direccion_cliente, ln=True)
-
         pdf.set_font('Arial', 'B', 11)
         pdf.cell(45, 8, "Suministro Actual:", 0)
         pdf.set_font('Arial', '', 11)
@@ -65,7 +60,6 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         pdf.set_text_color(0)
         pdf.set_font('Arial', 'B', 10)
         pdf.cell(0, 10, "1. RESUMEN DE CONSUMOS POR MESES ANALIZADOS", ln=True)
-        
         pdf.set_x(30)
         pdf.set_fill_color(100, 100, 100)
         pdf.set_text_color(255)
@@ -83,13 +77,13 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
             pdf.cell(45, 7, f" {fecha}", 1)
             pdf.cell(50, 7, f" {round(total_kwh, 2)} kWh", 1, 0, 'C')
             pdf.cell(55, 7, f" {row['Potencia (kW)']} kW", 1, 1, 'C')
-        
         pdf.ln(8)
 
-        # 3. TABLA 2: DETALLE DE AHORRO
+        # 3. TABLA 2 Y GRÁFICA DE AHORRO
         pdf.set_font('Arial', 'B', 10)
-        pdf.cell(0, 10, "2. COMPARATIVA DE COSTES: ACTUAL VS RECOMENDADA", ln=True)
+        pdf.cell(0, 10, "2. COMPARATIVA DE COSTES Y AHORRO MENSUAL", ln=True)
         
+        datos_grafica = {'Mes': [], 'Ahorro': []}
         pdf.set_x(25)
         pdf.set_fill_color(50, 50, 50)
         pdf.set_text_color(255)
@@ -106,19 +100,35 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
             try:
                 c_act = mes_data[mes_data['Compañía/Tarifa'].str.contains("ACTUAL", na=False)]['Coste (€)'].values[0]
                 c_pro = mes_data[mes_data['Compañía/Tarifa'] == nombre_ganadora]['Coste (€)'].values[0]
+                ahorro_mes = c_act - c_pro
+                
+                datos_grafica['Mes'].append(str(fecha))
+                datos_grafica['Ahorro'].append(ahorro_mes)
+
                 pdf.set_x(25)
                 pdf.cell(40, 7, f" {fecha}", 1)
                 pdf.cell(40, 7, f" {round(c_act, 2)} EUR", 1, 0, 'R')
                 pdf.cell(40, 7, f" {round(c_pro, 2)} EUR", 1, 0, 'R')
-                pdf.cell(40, 7, f" {round(c_act - c_pro, 2)} EUR", 1, 1, 'R')
+                pdf.cell(40, 7, f" {round(ahorro_mes, 2)} EUR", 1, 1, 'R')
             except: continue
 
-        pdf.ln(8)
+        # --- GENERAR GRÁFICA ---
+        plt.figure(figsize=(6, 3))
+        plt.bar(datos_grafica['Mes'], datos_grafica['Ahorro'], color='#228B22')
+        plt.ylabel('Ahorro (€)')
+        plt.title('Ahorro por Factura')
+        plt.xticks(rotation=45, fontsize=8)
+        plt.tight_layout()
+        plt.savefig("temp_grafica.png")
+        plt.close()
+        
+        pdf.ln(5)
+        pdf.image("temp_grafica.png", x=50, w=110)
+        pdf.ln(5)
 
-        # 4. TABLA 3: TOP 5 MEJORES ALTERNATIVAS
+        # 4. TABLA 3: TOP 5
         pdf.set_font('Arial', 'B', 10)
         pdf.cell(0, 10, "3. COMPARATIVA CON OTRAS OPCIONES DE MERCADO", ln=True)
-        
         pdf.set_x(35)
         pdf.set_fill_color(20, 50, 100)
         pdf.set_text_color(255)
@@ -136,9 +146,9 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
             pdf.cell(60, 7, f" +{round(row.iloc[1], 2)} EUR", 1, 1, 'C')
             pdf.set_text_color(0)
 
-        pdf.ln(12)
+        pdf.ln(10)
 
-        # 5. CONCLUSIÓN Y RECOMENDACIÓN FINAL EN TABLA
+        # 5. CONCLUSIÓN FINAL EN TABLA
         pdf.set_fill_color(230, 240, 255)
         pdf.set_font('Arial', 'B', 14)
         pdf.cell(0, 15, " CONCLUSIÓN Y RECOMENDACIÓN FINAL", ln=True, fill=True, align='C')
@@ -147,20 +157,13 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         num_facturas = len(lista_fechas)
         ahorro_anual = (ahorro_total_periodo / num_facturas) * 12 if num_facturas > 0 else 0
 
-        # Dibujado de la tabla final
         pdf.set_x(20)
         pdf.set_font('Arial', '', 11)
-        pdf.set_text_color(0)
-        # Celda con la frase explicativa
         pdf.multi_cell(170, 8, "Tras analizar su historial de consumo, la opción más eficiente para su suministro es la tarifa:", border='TLR', align='C')
-        
-        # Celda con la Ganadora (X)
         pdf.set_x(20)
         pdf.set_font('Arial', 'B', 12)
         pdf.set_text_color(20, 50, 100)
         pdf.cell(170, 10, f"{str(nombre_ganadora).upper()}", border='LR', ln=True, align='C')
-        
-        # Celda con el Ahorro Anual (Y)
         pdf.set_x(20)
         pdf.set_font('Arial', 'B', 12)
         pdf.set_text_color(34, 139, 34)
@@ -173,7 +176,6 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
 
 # --- INTERFAZ STREAMLIT ---
 st.title("📄 Generador Pro | Energetika")
-
 col1, col2 = st.columns(2)
 with col1:
     nombre_cliente = st.text_input("Nombre del cliente:", "Cliente Energetika")
@@ -188,7 +190,6 @@ if archivo:
         df_det = pd.read_excel(archivo, sheet_name="Detalle Comparativa")
         df_ran = pd.read_excel(archivo, sheet_name="Ranking Ahorro")
         df_con = pd.read_excel(archivo, sheet_name="Datos Facturas Originales")
-        
         st.success("✅ Excel cargado con éxito.")
         
         if st.button("🚀 Generar Informe Completo"):
