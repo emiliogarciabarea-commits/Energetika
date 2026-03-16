@@ -56,7 +56,7 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         pdf.cell(0, 8, compania_actual_manual, ln=True)
         pdf.ln(5)
 
-        # 2. TABLA 1: RESUMEN DE CONSUMOS
+        # 2. TABLA 1: CONSUMOS
         pdf.set_text_color(0)
         pdf.set_font('Arial', 'B', 10)
         pdf.cell(0, 10, "1. RESUMEN DE CONSUMOS POR MESES ANALIZADOS", ln=True)
@@ -67,7 +67,6 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         pdf.cell(45, 7, " Mes de Factura", 1, 0, 'C', True)
         pdf.cell(50, 7, " Consumo Total (kWh)", 1, 0, 'C', True)
         pdf.cell(55, 7, " Potencia Contratada", 1, 1, 'C', True)
-
         pdf.set_text_color(0)
         pdf.set_font('Arial', '', 8)
         for fecha in lista_fechas:
@@ -77,13 +76,13 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
             pdf.cell(45, 7, f" {fecha}", 1)
             pdf.cell(50, 7, f" {round(total_kwh, 2)} kWh", 1, 0, 'C')
             pdf.cell(55, 7, f" {row['Potencia (kW)']} kW", 1, 1, 'C')
-        pdf.ln(8)
+        pdf.ln(5)
 
         # 3. TABLA 2 Y GRÁFICA DE AHORRO
         pdf.set_font('Arial', 'B', 10)
         pdf.cell(0, 10, "2. COMPARATIVA DE COSTES Y AHORRO MENSUAL", ln=True)
         
-        datos_grafica = {'Mes': [], 'Ahorro': []}
+        datos_grafica = []
         pdf.set_x(25)
         pdf.set_fill_color(50, 50, 50)
         pdf.set_text_color(255)
@@ -100,30 +99,33 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
             try:
                 c_act = mes_data[mes_data['Compañía/Tarifa'].str.contains("ACTUAL", na=False)]['Coste (€)'].values[0]
                 c_pro = mes_data[mes_data['Compañía/Tarifa'] == nombre_ganadora]['Coste (€)'].values[0]
-                ahorro_mes = c_act - c_pro
+                ahorro = c_act - c_pro
                 
-                datos_grafica['Mes'].append(str(fecha))
-                datos_grafica['Ahorro'].append(ahorro_mes)
+                # Formatear fecha para gráfica (MM/YY)
+                fecha_dt = pd.to_datetime(fecha, dayfirst=True)
+                fecha_str = fecha_dt.strftime('%m/%y')
+                datos_grafica.append({'Mes': fecha_str, 'Ahorro': ahorro})
 
                 pdf.set_x(25)
                 pdf.cell(40, 7, f" {fecha}", 1)
                 pdf.cell(40, 7, f" {round(c_act, 2)} EUR", 1, 0, 'R')
                 pdf.cell(40, 7, f" {round(c_pro, 2)} EUR", 1, 0, 'R')
-                pdf.cell(40, 7, f" {round(ahorro_mes, 2)} EUR", 1, 1, 'R')
+                pdf.cell(40, 7, f" {round(ahorro, 2)} EUR", 1, 1, 'R')
             except: continue
 
-        # --- GENERAR GRÁFICA ---
+        # --- GENERACIÓN DE GRÁFICA ---
+        df_g = pd.DataFrame(datos_grafica)
         plt.figure(figsize=(6, 3))
-        plt.bar(datos_grafica['Mes'], datos_grafica['Ahorro'], color='#228B22')
+        colores = ['#2ecc71' if x >= 0 else '#e74c3c' for x in df_g['Ahorro']]
+        plt.bar(df_g['Mes'], df_g['Ahorro'], color=colores)
         plt.ylabel('Ahorro (€)')
-        plt.title('Ahorro por Factura')
-        plt.xticks(rotation=45, fontsize=8)
+        plt.xticks(rotation=0, fontsize=8)
         plt.tight_layout()
-        plt.savefig("temp_grafica.png")
+        plt.savefig("temp_chart.png", dpi=150)
         plt.close()
         
         pdf.ln(5)
-        pdf.image("temp_grafica.png", x=50, w=110)
+        pdf.image("temp_chart.png", x=50, w=110)
         pdf.ln(5)
 
         # 4. TABLA 3: TOP 5
@@ -132,23 +134,19 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         pdf.set_x(35)
         pdf.set_fill_color(20, 50, 100)
         pdf.set_text_color(255)
-        pdf.set_font('Arial', 'B', 8)
         pdf.cell(80, 7, " Compañía / Tarifa", 1, 0, 'L', True)
         pdf.cell(60, 7, " Ahorro Total Detectado", 1, 1, 'C', True)
-
         pdf.set_text_color(0)
         pdf.set_font('Arial', '', 8)
-        top_5 = ranking_ordenado.head(5)
-        for _, row in top_5.iterrows():
+        for _, row in ranking_ordenado.head(5).iterrows():
             pdf.set_x(35)
             pdf.cell(80, 7, f" {row.iloc[0]}", 1)
             pdf.set_text_color(34, 139, 34)
             pdf.cell(60, 7, f" +{round(row.iloc[1], 2)} EUR", 1, 1, 'C')
             pdf.set_text_color(0)
-
         pdf.ln(10)
 
-        # 5. CONCLUSIÓN FINAL EN TABLA
+        # 5. TABLA FINAL CONCLUSIÓN
         pdf.set_fill_color(230, 240, 255)
         pdf.set_font('Arial', 'B', 14)
         pdf.cell(0, 15, " CONCLUSIÓN Y RECOMENDACIÓN FINAL", ln=True, fill=True, align='C')
@@ -191,7 +189,6 @@ if archivo:
         df_ran = pd.read_excel(archivo, sheet_name="Ranking Ahorro")
         df_con = pd.read_excel(archivo, sheet_name="Datos Facturas Originales")
         st.success("✅ Excel cargado con éxito.")
-        
         if st.button("🚀 Generar Informe Completo"):
             pdf_out = generar_pdf(df_det, df_ran, df_con, nombre_cliente, direccion_cliente, compania_actual_manual)
             if pdf_out:
@@ -202,4 +199,4 @@ if archivo:
                     mime="application/pdf"
                 )
     except Exception as e:
-        st.error(f"Error: Asegúrate de que el Excel tiene las pestañas correctas.")
+        st.error(f"Error: Revisa las pestañas del Excel.")
