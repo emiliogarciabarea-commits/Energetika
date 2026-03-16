@@ -61,12 +61,12 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         pdf.cell(0, 8, compania_actual_manual, ln=True)
         pdf.ln(5)
 
-        # 2. TABLA 1: RESUMEN DE CONSUMOS (MÁS PEQUEÑA)
+        # 2. TABLA 1: RESUMEN DE CONSUMOS
         pdf.set_text_color(0)
         pdf.set_font('Arial', 'B', 10)
         pdf.cell(0, 10, "1. RESUMEN DE CONSUMOS POR MESES ANALIZADOS", ln=True)
         
-        pdf.set_x(30) # Margen para centrar tabla pequeña
+        pdf.set_x(30)
         pdf.set_fill_color(100, 100, 100)
         pdf.set_text_color(255)
         pdf.set_font('Arial', 'B', 8)
@@ -86,11 +86,11 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         
         pdf.ln(8)
 
-        # 3. TABLA 2: DETALLE DE AHORRO (MÁS PEQUEÑA)
+        # 3. TABLA 2: DETALLE DE AHORRO
         pdf.set_font('Arial', 'B', 10)
         pdf.cell(0, 10, "2. COMPARATIVA DE COSTES: ACTUAL VS RECOMENDADA", ln=True)
         
-        pdf.set_x(25) # Margen para centrar
+        pdf.set_x(25)
         pdf.set_fill_color(50, 50, 50)
         pdf.set_text_color(255)
         pdf.set_font('Arial', 'B', 8)
@@ -115,11 +115,11 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
 
         pdf.ln(8)
 
-        # 4. TABLA 3: TOP 5 MEJORES ALTERNATIVAS (MÁS PEQUEÑA)
+        # 4. TABLA 3: TOP 5 MEJORES ALTERNATIVAS
         pdf.set_font('Arial', 'B', 10)
         pdf.cell(0, 10, "3. COMPARATIVA CON OTRAS OPCIONES DE MERCADO", ln=True)
         
-        pdf.set_x(35) # Margen para centrar
+        pdf.set_x(35)
         pdf.set_fill_color(20, 50, 100)
         pdf.set_text_color(255)
         pdf.set_font('Arial', 'B', 8)
@@ -138,27 +138,33 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
 
         pdf.ln(12)
 
-        # 5. CONCLUSIÓN Y RECOMENDACIÓN FINAL
+        # 5. CONCLUSIÓN Y RECOMENDACIÓN FINAL EN TABLA
         pdf.set_fill_color(230, 240, 255)
         pdf.set_font('Arial', 'B', 14)
         pdf.cell(0, 15, " CONCLUSIÓN Y RECOMENDACIÓN FINAL", ln=True, fill=True, align='C')
         pdf.ln(5)
 
-        pdf.set_font('Arial', '', 12)
-        pdf.multi_cell(0, 10, f"Tras analizar su historial de consumo, la opción más eficiente para su suministro es la tarifa:", align='C')
-        
-        pdf.set_font('Arial', 'B', 12)
-        pdf.set_text_color(20, 50, 100)
-        pdf.cell(0, 12, f"{str(nombre_ganadora).upper()}", ln=True, align='C')
-        
-        pdf.ln(5)
-        
         num_facturas = len(lista_fechas)
         ahorro_anual = (ahorro_total_periodo / num_facturas) * 12 if num_facturas > 0 else 0
 
-        pdf.set_font('Arial', 'B', 14)
+        # Dibujado de la tabla final
+        pdf.set_x(20)
+        pdf.set_font('Arial', '', 11)
+        pdf.set_text_color(0)
+        # Celda con la frase explicativa
+        pdf.multi_cell(170, 8, "Tras analizar su historial de consumo, la opción más eficiente para su suministro es la tarifa:", border='TLR', align='C')
+        
+        # Celda con la Ganadora (X)
+        pdf.set_x(20)
+        pdf.set_font('Arial', 'B', 12)
+        pdf.set_text_color(20, 50, 100)
+        pdf.cell(170, 10, f"{str(nombre_ganadora).upper()}", border='LR', ln=True, align='C')
+        
+        # Celda con el Ahorro Anual (Y)
+        pdf.set_x(20)
+        pdf.set_font('Arial', 'B', 12)
         pdf.set_text_color(34, 139, 34)
-        pdf.cell(0, 10, f"AHORRO ANUAL ESTIMADO: {round(float(ahorro_anual), 2)} EUR / AÑO", ln=True, align='C')
+        pdf.cell(170, 12, f"AHORRO ANUAL ESTIMADO: {round(float(ahorro_anual), 2)} EUR / AÑO", border='BLR', ln=True, align='C')
 
         return pdf.output()
     except Exception as e:
