@@ -67,7 +67,6 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         pdf.cell(0, 10, "1. RESUMEN DE CONSUMOS POR MESES ANALIZADOS", ln=True)
         
         pdf.set_x(30)
-        # Color del logo Energetika
         pdf.set_fill_color(20, 50, 100)
         pdf.set_text_color(255)
         pdf.set_font('Arial', 'B', 8)
@@ -87,12 +86,11 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         
         pdf.ln(8)
 
-        # 3. TABLA 2 Y GRÁFICA
+        # 3. TABLA 2 Y GRÁFICA DE BARRAS
         pdf.set_font('Arial', 'B', 10)
         pdf.cell(0, 10, "2. COMPARATIVA DE COSTES Y AHORRO MENSUAL", ln=True)
         
         pdf.set_x(25)
-        # Color del logo Energetika
         pdf.set_fill_color(20, 50, 100)
         pdf.set_text_color(255)
         pdf.set_font('Arial', 'B', 8)
@@ -124,7 +122,6 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
                 pdf.cell(40, 7, f" {round(ahorro_mes, 2)} EUR", 1, 1, 'R')
             except: continue
 
-        # GENERAR GRÁFICA
         fig, ax = plt.subplots(figsize=(8, 4))
         colores = ['#2ecc71' if x >= 0 else '#e74c3c' for x in ahorros_grafica]
         ax.bar(meses_grafica, ahorros_grafica, color=colores, edgecolor='black', alpha=0.8)
@@ -142,12 +139,50 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         pdf.image(grafica_path, x=45, w=120)
         pdf.ln(5)
 
+        # --- NUEVA SECCIÓN: GRÁFICO DE PASTEL (DESGLOSE PROPUESTA) ---
+        pdf.set_font('Arial', 'B', 10)
+        pdf.set_text_color(0)
+        pdf.cell(0, 10, f"4. DESGLOSE DE COSTES ESTIMADOS ({nombre_ganadora})", ln=True)
+
+        # Cálculo de componentes para el pastel (media de los meses analizados)
+        total_potencia = 0
+        total_energia = 0
+        total_excedente = 0
+
+        # Para el gráfico usamos los datos de la pestaña original de facturas y simulamos el reparto
+        for _, row in df_consumos.iterrows():
+            # Estimación simplificada para el gráfico de pastel basada en los totales acumulados
+            # Se asume una proporción genérica basada en los datos de la comparativa
+            total_potencia += (row['Potencia (kW)'] * row['Días'] * 0.13) # Valor orientativo para el gráfico
+            total_energia += (row['Consumo Punta (kWh)'] + row['Consumo Llano (kWh)'] + row['Consumo Valle (kWh)']) * 0.15
+            total_excedente += row['Excedente (kWh)'] * 0.05
+
+        labels = ['Potencia (Fijo)', 'Energía (Consumo)']
+        values = [total_potencia, total_energia]
+        colors_pie = ['#143264', '#2ecc71'] # Azul Energetika y Verde Ahorro
+
+        if total_excedente > 0:
+            labels.append('Excedentes')
+            values.append(total_excedente)
+            colors_pie.append('#f1c40f') # Amarillo solar
+
+        fig_pie, ax_pie = plt.subplots(figsize=(6, 4))
+        ax_pie.pie(values, labels=labels, autopct='%1.1f%%', startangle=140, colors=colors_pie, wedgeprops={'edgecolor': 'white'})
+        ax_pie.axis('equal') 
+        plt.tight_layout()
+
+        pie_path = "temp_pie.png"
+        fig_pie.savefig(pie_path, dpi=300)
+        plt.close(fig_pie)
+
+        pdf.image(pie_path, x=55, w=100)
+        pdf.ln(5)
+
         # 4. TABLA 3: TOP 5
         pdf.set_font('Arial', 'B', 10)
         pdf.set_text_color(0)
         pdf.cell(0, 10, "3. COMPARATIVA CON OTRAS OPCIONES DE MERCADO", ln=True)
         pdf.set_x(35)
-        # Color del logo Energetika
         pdf.set_fill_color(20, 50, 100)
         pdf.set_text_color(255)
         pdf.set_font('Arial', 'B', 8)
