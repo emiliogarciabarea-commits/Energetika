@@ -15,7 +15,7 @@ class EnergetikaPDF(FPDF):
             self.image("Logo_Energetika.jpg", 155, 10, 40)
         
         self.set_font('Arial', 'B', 16)
-        self.set_text_color(20, 50, 100) # Azul Logo
+        self.set_text_color(20, 50, 100) # Azul corporativo fuerte
         self.cell(0, 10, 'ESTUDIO DE AHORRO ENERGÉTICO', ln=True)
         self.set_font('Arial', '', 10)
         self.set_text_color(100)
@@ -61,14 +61,14 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         pdf.cell(0, 8, compania_actual_manual, ln=True)
         pdf.ln(5)
 
-        # 2. TABLA 1: CONSUMOS (AZUL CORPORATIVO)
+        # 2. TABLA 1: CONSUMOS (COLORES MÁS CLAROS ACORDES AL LOGO)
         pdf.set_font('Arial', 'B', 10)
-        pdf.set_text_color(0)
+        pdf.set_text_color(20, 50, 100)
         pdf.cell(0, 10, "1. RESUMEN DE CONSUMOS POR MESES ANALIZADOS", ln=True)
         
         pdf.set_x(30)
-        pdf.set_fill_color(20, 50, 100) # AZUL LOGO
-        pdf.set_text_color(255)
+        pdf.set_fill_color(210, 225, 240) # Azul muy claro (acorde al logo)
+        pdf.set_text_color(20, 50, 100)  # Texto en azul corporativo
         pdf.set_font('Arial', 'B', 8)
         pdf.cell(45, 7, " Mes de Factura", 1, 0, 'C', True)
         pdf.cell(50, 7, " Consumo Total (kWh)", 1, 0, 'C', True)
@@ -86,14 +86,14 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         
         pdf.ln(8)
 
-        # 3. TABLA 2 Y GRÁFICA DE BARRAS (AZUL CORPORATIVO)
+        # 3. TABLA 2: COMPARATIVA (COLORES MÁS CLAROS ACORDES AL LOGO)
         pdf.set_font('Arial', 'B', 10)
-        pdf.set_text_color(0)
+        pdf.set_text_color(20, 50, 100)
         pdf.cell(0, 10, "2. COMPARATIVA DE COSTES Y AHORRO MENSUAL", ln=True)
         
         pdf.set_x(25)
-        pdf.set_fill_color(20, 50, 100) # AZUL LOGO
-        pdf.set_text_color(255)
+        pdf.set_fill_color(210, 225, 240) # Azul muy claro
+        pdf.set_text_color(20, 50, 100)
         pdf.set_font('Arial', 'B', 8)
         pdf.cell(40, 7, " Periodo", 1, 0, 'C', True)
         pdf.cell(40, 7, " Coste Actual", 1, 0, 'C', True)
@@ -156,18 +156,19 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         pdf.set_text_color(0)
         pdf.cell(0, 10, f"4. DESGLOSE DE COSTES ESTIMADOS ({nombre_ganadora})", ln=True)
 
+        # Se asumen precios promedio para el desglose visual
         total_potencia = sum(df_consumos['Potencia (kW)'] * df_consumos['Días'] * 0.13)
         total_energia = sum((df_consumos['Consumo Punta (kWh)'] + df_consumos['Consumo Llano (kWh)'] + df_consumos['Consumo Valle (kWh)']) * 0.15)
         total_excedente = sum(df_consumos['Excedente (kWh)'] * 0.05)
 
         labels = ['Potencia (Fijo)', 'Energía (Consumo)']
         values = [total_potencia, total_energia]
-        colors_pie = ['#A9CCE3', '#ABEBC6'] # Azul claro y Verde claro
+        colors_pie = ['#A9CCE3', '#ABEBC6'] # Colores claros solicitado
 
         if total_excedente > 0:
             labels.append('Excedentes')
             values.append(total_excedente)
-            colors_pie.append('#FCF3CF') # Amarillo claro
+            colors_pie.append('#FCF3CF')
 
         fig_pie, ax_pie = plt.subplots(figsize=(6, 4))
         ax_pie.pie(values, labels=labels, autopct='%1.1f%%', startangle=140, colors=colors_pie, wedgeprops={'edgecolor': 'white'})
@@ -186,7 +187,7 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         pdf.set_text_color(0)
         pdf.cell(0, 10, "3. COMPARATIVA CON OTRAS OPCIONES DE MERCADO", ln=True)
         pdf.set_x(35)
-        pdf.set_fill_color(20, 50, 100)
+        pdf.set_fill_color(20, 50, 100) # Mantener este oscuro para contraste
         pdf.set_text_color(255)
         pdf.set_font('Arial', 'B', 8)
         pdf.cell(80, 7, " Compañía / Tarifa", 1, 0, 'L', True)
