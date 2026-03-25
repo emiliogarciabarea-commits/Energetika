@@ -67,7 +67,8 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         pdf.cell(0, 10, "1. RESUMEN DE CONSUMOS POR MESES ANALIZADOS", ln=True)
         
         pdf.set_x(30)
-        pdf.set_fill_color(100, 100, 100)
+        # Color del logo Energetika
+        pdf.set_fill_color(20, 50, 100)
         pdf.set_text_color(255)
         pdf.set_font('Arial', 'B', 8)
         pdf.cell(45, 7, " Mes de Factura", 1, 0, 'C', True)
@@ -91,7 +92,8 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         pdf.cell(0, 10, "2. COMPARATIVA DE COSTES Y AHORRO MENSUAL", ln=True)
         
         pdf.set_x(25)
-        pdf.set_fill_color(50, 50, 50)
+        # Color del logo Energetika
+        pdf.set_fill_color(20, 50, 100)
         pdf.set_text_color(255)
         pdf.set_font('Arial', 'B', 8)
         pdf.cell(40, 7, " Periodo", 1, 0, 'C', True)
@@ -145,6 +147,7 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         pdf.set_text_color(0)
         pdf.cell(0, 10, "3. COMPARATIVA CON OTRAS OPCIONES DE MERCADO", ln=True)
         pdf.set_x(35)
+        # Color del logo Energetika
         pdf.set_fill_color(20, 50, 100)
         pdf.set_text_color(255)
         pdf.set_font('Arial', 'B', 8)
@@ -162,11 +165,9 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
 
         pdf.ln(10)
 
-        # 5. TABLA FINAL CON CÁLCULO DE IVA (21%)
+        # 5. TABLA FINAL
         num_facturas = len(lista_fechas)
-        ahorro_anual_base = (ahorro_total_periodo / num_facturas) * 12 if num_facturas > 0 else 0
-        iva_ahorrado = ahorro_anual_base * 0.21
-        total_ahorro_iva = ahorro_anual_base + iva_ahorrado
+        ahorro_anual = (ahorro_total_periodo / num_facturas) * 12 if num_facturas > 0 else 0
 
         pdf.set_fill_color(230, 240, 255)
         pdf.set_font('Arial', 'B', 14)
@@ -180,18 +181,10 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         pdf.set_font('Arial', 'B', 12)
         pdf.set_text_color(20, 50, 100)
         pdf.cell(170, 10, f"{str(nombre_ganadora).upper()}", border='LR', ln=True, align='C')
-        
-        # Ahorro Anual (Base)
         pdf.set_x(20)
-        pdf.set_font('Arial', 'B', 11)
+        pdf.set_font('Arial', 'B', 12)
         pdf.set_text_color(34, 139, 34)
-        pdf.cell(170, 8, f"AHORRO ANUAL ESTIMADO (Base): {round(float(ahorro_anual_base), 2)} EUR / AÑO", border='LR', ln=True, align='C')
-        
-        # Ahorro Anual Total (con IVA 21%)
-        pdf.set_x(20)
-        pdf.set_font('Arial', 'B', 13)
-        pdf.set_text_color(34, 139, 34)
-        pdf.cell(170, 12, f"AHORRO TOTAL REAL (IVA 21% Incluido): {round(float(total_ahorro_iva), 2)} EUR / AÑO", border='BLR', ln=True, align='C')
+        pdf.cell(170, 12, f"AHORRO ANUAL ESTIMADO: {round(float(ahorro_anual), 2)} EUR / AÑO", border='BLR', ln=True, align='C')
 
         return pdf.output(dest='S').encode('latin-1')
     except Exception as e:
