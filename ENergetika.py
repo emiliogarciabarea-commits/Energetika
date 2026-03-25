@@ -99,7 +99,6 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         pdf.cell(40, 7, " Coste Propuesta", 1, 0, 'C', True)
         pdf.cell(40, 7, " Ahorro", 1, 1, 'C', True)
 
-        pdf.set_text_color(0)
         pdf.set_font('Arial', '', 8)
         
         meses_grafica = []
@@ -116,10 +115,24 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
                 ahorros_grafica.append(ahorro_mes)
 
                 pdf.set_x(25)
+                pdf.set_text_color(0)
                 pdf.cell(40, 7, f" {fecha}", 1)
                 pdf.cell(40, 7, f" {round(c_act, 2)} EUR", 1, 0, 'R')
                 pdf.cell(40, 7, f" {round(c_pro, 2)} EUR", 1, 0, 'R')
-                pdf.cell(40, 7, f" {round(ahorro_mes, 2)} EUR", 1, 1, 'R')
+                
+                # --- Lógica de color y signo para el ahorro en Tabla 2 ---
+                if ahorro_mes > 0:
+                    pdf.set_text_color(34, 139, 34) # Verde
+                    txt_ahorro = f" +{round(ahorro_mes, 2)} EUR"
+                elif ahorro_mes < 0:
+                    pdf.set_text_color(200, 0, 0) # Rojo
+                    txt_ahorro = f" {round(ahorro_mes, 2)} EUR"
+                else:
+                    pdf.set_text_color(0)
+                    txt_ahorro = f" {round(ahorro_mes, 2)} EUR"
+                
+                pdf.cell(40, 7, txt_ahorro, 1, 1, 'R')
+                pdf.set_text_color(0) # Reset color
             except: continue
 
         fig, ax = plt.subplots(figsize=(8, 4))
@@ -139,32 +152,28 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         pdf.image(grafica_path, x=45, w=120)
         pdf.ln(5)
 
-        # --- NUEVA SECCIÓN: GRÁFICO DE PASTEL (DESGLOSE PROPUESTA) ---
+        # --- SECCIÓN: GRÁFICO DE PASTEL ---
         pdf.set_font('Arial', 'B', 10)
         pdf.set_text_color(0)
         pdf.cell(0, 10, f"4. DESGLOSE DE COSTES ESTIMADOS ({nombre_ganadora})", ln=True)
 
-        # Cálculo de componentes para el pastel (media de los meses analizados)
         total_potencia = 0
         total_energia = 0
         total_excedente = 0
 
-        # Para el gráfico usamos los datos de la pestaña original de facturas y simulamos el reparto
         for _, row in df_consumos.iterrows():
-            # Estimación simplificada para el gráfico de pastel basada en los totales acumulados
-            # Se asume una proporción genérica basada en los datos de la comparativa
-            total_potencia += (row['Potencia (kW)'] * row['Días'] * 0.13) # Valor orientativo para el gráfico
+            total_potencia += (row['Potencia (kW)'] * row['Días'] * 0.13)
             total_energia += (row['Consumo Punta (kWh)'] + row['Consumo Llano (kWh)'] + row['Consumo Valle (kWh)']) * 0.15
             total_excedente += row['Excedente (kWh)'] * 0.05
 
         labels = ['Potencia (Fijo)', 'Energía (Consumo)']
         values = [total_potencia, total_energia]
-        colors_pie = ['#143264', '#2ecc71'] # Azul Energetika y Verde Ahorro
+        colors_pie = ['#143264', '#2ecc71']
 
         if total_excedente > 0:
             labels.append('Excedentes')
             values.append(total_excedente)
-            colors_pie.append('#f1c40f') # Amarillo solar
+            colors_pie.append('#f1c40f')
 
         fig_pie, ax_pie = plt.subplots(figsize=(6, 4))
         ax_pie.pie(values, labels=labels, autopct='%1.1f%%', startangle=140, colors=colors_pie, wedgeprops={'edgecolor': 'white'})
@@ -198,9 +207,9 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
             pdf.cell(60, 7, f" +{round(row.iloc[1], 2)} EUR", 1, 1, 'C')
             pdf.set_text_color(0)
 
-        pdf.ln(10)
+        # --- SALTO DE PÁGINA PARA LA CONCLUSIÓN FINAL ---
+        pdf.add_page() 
 
-        # 5. TABLA FINAL
         num_facturas = len(lista_fechas)
         ahorro_anual = (ahorro_total_periodo / num_facturas) * 12 if num_facturas > 0 else 0
 
