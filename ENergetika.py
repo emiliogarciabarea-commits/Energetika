@@ -86,7 +86,7 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         pdf.multi_cell(150, 7, "Este estudio ha sido realizado de forma independiente por Energetika, analizando las mejores ofertas del mercado actual para encontrar la que mejor se adapta a tu perfil de consumo real.", align='C')
 
         # ==========================================
-        # PÁGINA 2: ANÁLISIS DETALLADO (IGUAL QUE ANTES)
+        # PÁGINA 2: ANÁLISIS DETALLADO
         # ==========================================
         pdf.add_page()
         pdf.set_font('Arial', 'B', 11)
@@ -104,11 +104,9 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         pdf.ln(5)
 
         # TABLA 1: CONSUMOS
-        pdf.set_font('Arial', 'B', 10)
-        pdf.set_text_color(20, 50, 100)
+        pdf.set_font('Arial', 'B', 10); pdf.set_text_color(20, 50, 100)
         pdf.cell(0, 10, "1. RESUMEN DE CONSUMOS POR MESES ANALIZADOS", ln=True)
-        pdf.set_x(30)
-        pdf.set_fill_color(210, 225, 240) 
+        pdf.set_x(30); pdf.set_fill_color(210, 225, 240) 
         pdf.set_font('Arial', 'B', 8)
         pdf.cell(45, 7, " Mes de Factura", 1, 0, 'C', True)
         pdf.cell(50, 7, " Consumo Total (kWh)", 1, 0, 'C', True)
@@ -123,7 +121,7 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
             pdf.cell(55, 7, f" {row['Potencia (kW)']} kW", 1, 1, 'C')
         pdf.ln(8)
 
-        # TABLA 2 Y GRÁFICA
+        # TABLA 2: COMPARATIVA (CORRECCIÓN SIGNO +)
         pdf.set_font('Arial', 'B', 10); pdf.set_text_color(20, 50, 100)
         pdf.cell(0, 10, "2. COMPARATIVA DE COSTES Y AHORRO MENSUAL", ln=True)
         pdf.set_x(25); pdf.set_fill_color(210, 225, 240)
@@ -140,11 +138,20 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
                 c_pro = mes_data[mes_data['Compañía/Tarifa'] == nombre_ganadora]['Coste (€)'].values[0]
                 ahorro_mes = c_act - c_pro
                 meses_grafica.append(str(fecha)); ahorros_grafica.append(ahorro_mes)
+                
                 pdf.set_x(25); pdf.set_text_color(0); pdf.cell(40, 7, f" {fecha}", 1)
                 pdf.cell(40, 7, f" {round(c_act, 2)} EUR", 1, 0, 'R')
                 pdf.cell(40, 7, f" {round(c_pro, 2)} EUR", 1, 0, 'R')
-                pdf.set_text_color(34, 139, 34) if ahorro_mes > 0 else pdf.set_text_color(200, 0, 0)
-                pdf.cell(40, 7, f" {round(ahorro_mes, 2)} EUR", 1, 1, 'R')
+                
+                # Lógica de color y signo corregida
+                if ahorro_mes > 0:
+                    pdf.set_text_color(34, 139, 34)
+                    txt_ahorro = f" +{round(ahorro_mes, 2)} EUR"
+                else:
+                    pdf.set_text_color(200, 0, 0)
+                    txt_ahorro = f" {round(ahorro_mes, 2)} EUR"
+                
+                pdf.cell(40, 7, txt_ahorro, 1, 1, 'R')
                 pdf.set_text_color(0)
             except: continue
 
@@ -176,7 +183,7 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
             pdf.set_text_color(34, 139, 34); pdf.cell(60, 7, f" +{round(row.iloc[1], 2)} EUR", 1, 1, 'C'); pdf.set_text_color(0)
 
         # ==========================================
-        # PÁGINA 3: CONCLUSIÓN FINAL (CON PORCENTAJE)
+        # PÁGINA 3: CONCLUSIÓN FINAL
         # ==========================================
         pdf.add_page() 
         pdf.set_fill_color(230, 240, 255); pdf.set_font('Arial', 'B', 14)
