@@ -62,6 +62,7 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         pdf.cell(0, 10, "TU AHORRO ANUAL ESTIMADO ES DE:", ln=True, align='C')
         pdf.set_font('Arial', 'B', 40); pdf.set_text_color(34, 139, 34)
         pdf.cell(0, 25, f"{round(ahorro_anual_con_iva, 2)} EUR", ln=True, align='C')
+        
         pdf.set_font('Arial', 'I', 11); pdf.set_text_color(100)
         pdf.cell(0, 10, f"(Lo que supone un ahorro del {round(porcentaje_ahorro_ganadora, 1)}% en tu factura)", ln=True, align='C')
         
@@ -133,7 +134,7 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
             pdf.set_x(35); pdf.cell(80, 7, f" {row.iloc[0]}", 1); pdf.set_text_color(34, 139, 34); pdf.cell(60, 7, f" +{round(row.iloc[1], 2)} EUR", 1, 1, 'C'); pdf.set_text_color(0)
 
         # ==========================================
-        # PÁGINA 3: CONCLUSIÓN FINAL (NUEVA TABLA)
+        # PÁGINA 3: CONCLUSIÓN FINAL
         # ==========================================
         pdf.add_page(); pdf.set_fill_color(230, 240, 255); pdf.set_font('Arial', 'B', 14)
         pdf.cell(0, 15, " CONCLUSIÓN Y RECOMENDACIÓN FINAL", ln=True, fill=True, align='C')
@@ -141,18 +142,17 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         pdf.multi_cell(170, 8, "Proyección de ahorro anual para las opciones más competitivas del mercado:", align='C')
         pdf.ln(5)
 
-        # --- NUEVA TABLA EN CONCLUSIONES ---
+        # --- TABLA EN CONCLUSIONES (MODIFICACIÓN SIN/CON IVA) ---
         pdf.set_x(10); pdf.set_fill_color(245, 245, 245); pdf.set_font('Arial', 'B', 8)
         pdf.cell(60, 8, " Compañía / Tarifa", 1, 0, 'C', True)
-        pdf.cell(45, 8, " Ahorro Anual (S/I)", 1, 0, 'C', True)
-        pdf.cell(45, 8, " Ahorro Anual (C/I)", 1, 0, 'C', True)
+        pdf.cell(45, 8, " Ahorro Anual Sin IVA", 1, 0, 'C', True)
+        pdf.cell(45, 8, " Ahorro Anual Con IVA", 1, 0, 'C', True)
         pdf.cell(40, 8, " % Ahorro", 1, 1, 'C', True)
 
         pdf.set_font('Arial', '', 8)
         for _, row in ranking_ordenado.head(5).iterrows():
             nombre_cia = row.iloc[0]
             ahorro_periodo = row.iloc[1]
-            # Proyecciones anuales
             anual_si = (ahorro_periodo / num_facturas) * 12
             anual_ci = anual_si * 1.21
             porc = (ahorro_periodo / coste_actual_total) * 100 if coste_actual_total > 0 else 0
@@ -166,8 +166,8 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         pdf.ln(10)
         pdf.set_x(20); pdf.set_font('Arial', '', 11); pdf.multi_cell(170, 8, f"La opción más eficiente para su suministro es {nombre_ganadora}:", align='C')
         pdf.set_x(20); pdf.set_font('Arial', 'B', 12); pdf.set_text_color(20, 50, 100); pdf.cell(170, 10, f"{str(nombre_ganadora).upper()}", border='TLR', ln=True, align='C')
-        pdf.set_x(20); pdf.set_font('Arial', 'B', 11); pdf.set_text_color(34, 139, 34); pdf.cell(170, 10, f"AHORRO ANUAL ESTIMADO (SIN IVA): {round(ahorro_anual_sin_iva, 2)} EUR", border='LR', ln=True, align='C')
-        pdf.set_x(20); pdf.set_font('Arial', 'B', 12); pdf.set_text_color(34, 139, 34); pdf.cell(170, 12, f"AHORRO ANUAL ESTIMADO (CON IVA 21%): {round(ahorro_anual_con_iva, 2)} EUR / AÑO", border='BLR', ln=True, align='C')
+        pdf.set_x(20); pdf.set_font('Arial', 'B', 11); pdf.set_text_color(34, 139, 34); pdf.cell(170, 10, f"AHORRO ANUAL ESTIMADO SIN IVA: {round(ahorro_anual_sin_iva, 2)} EUR", border='LR', ln=True, align='C')
+        pdf.set_x(20); pdf.set_font('Arial', 'B', 12); pdf.set_text_color(34, 139, 34); pdf.cell(170, 12, f"AHORRO ANUAL ESTIMADO CON IVA (21%): {round(ahorro_anual_con_iva, 2)} EUR / AÑO", border='BLR', ln=True, align='C')
 
         return pdf.output(dest='S').encode('latin-1')
     except Exception as e:
