@@ -39,7 +39,6 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         nombre_ganadora = ganadora_row.iloc[0]
         ahorro_total_periodo = ganadora_row.iloc[1]
         
-        # Cálculo de costes actuales para el porcentaje
         coste_actual_total = df_detalle[df_detalle['Compañía/Tarifa'].str.contains("ACTUAL", na=False)]['Coste (€)'].sum()
         porcentaje_ahorro = (ahorro_total_periodo / coste_actual_total) * 100 if coste_actual_total > 0 else 0
         
@@ -103,6 +102,12 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         pdf.cell(0, 8, compania_actual_manual, ln=True)
         pdf.ln(5)
 
+        # NOTA ACLARATORIA SOBRE IMPUESTOS
+        pdf.set_font('Arial', 'I', 9)
+        pdf.set_text_color(100)
+        pdf.cell(0, 5, "* Los importes de las siguientes tablas se muestran sin IVA ni impuestos especiales.", ln=True)
+        pdf.ln(2)
+
         # TABLA 1: CONSUMOS
         pdf.set_font('Arial', 'B', 10); pdf.set_text_color(20, 50, 100)
         pdf.cell(0, 10, "1. RESUMEN DE CONSUMOS POR MESES ANALIZADOS", ln=True)
@@ -121,7 +126,7 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
             pdf.cell(55, 7, f" {row['Potencia (kW)']} kW", 1, 1, 'C')
         pdf.ln(8)
 
-        # TABLA 2: COMPARATIVA (CORRECCIÓN SIGNO +)
+        # TABLA 2: COMPARATIVA
         pdf.set_font('Arial', 'B', 10); pdf.set_text_color(20, 50, 100)
         pdf.cell(0, 10, "2. COMPARATIVA DE COSTES Y AHORRO MENSUAL", ln=True)
         pdf.set_x(25); pdf.set_fill_color(210, 225, 240)
@@ -143,7 +148,6 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
                 pdf.cell(40, 7, f" {round(c_act, 2)} EUR", 1, 0, 'R')
                 pdf.cell(40, 7, f" {round(c_pro, 2)} EUR", 1, 0, 'R')
                 
-                # Lógica de color y signo corregida
                 if ahorro_mes > 0:
                     pdf.set_text_color(34, 139, 34)
                     txt_ahorro = f" +{round(ahorro_mes, 2)} EUR"
