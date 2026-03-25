@@ -11,11 +11,13 @@ st.set_page_config(page_title="Energetika Pro", layout="centered")
 
 class EnergetikaPDF(FPDF):
     def header(self):
+        # El logo solo se muestra si existe y NO estamos en la portada (opcional)
+        # Para esta versión, lo mantendremos en todas las páginas
         if os.path.exists("Logo_Energetika.jpg"):
             self.image("Logo_Energetika.jpg", 155, 10, 40)
         
         self.set_font('Arial', 'B', 16)
-        self.set_text_color(20, 50, 100) # Azul corporativo fuerte
+        self.set_text_color(20, 50, 100)
         self.cell(0, 10, 'ESTUDIO DE AHORRO ENERGÉTICO', ln=True)
         self.set_font('Arial', '', 10)
         self.set_text_color(100)
@@ -31,18 +33,66 @@ class EnergetikaPDF(FPDF):
 def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_cliente, compania_actual_manual):
     try:
         pdf = EnergetikaPDF()
-        pdf.add_page()
-
-        # 1. PROCESAMIENTO DE DATOS
+        
+        # --- PROCESAMIENTO PREVIO DE DATOS PARA LA PORTADA ---
         ranking_real = df_ranking[~df_ranking.iloc[:, 0].str.contains("ACTUAL", na=False)]
         ranking_ordenado = ranking_real.sort_values(by=ranking_real.columns[1], ascending=False)
         ganadora_row = ranking_ordenado.iloc[0]
-        
         nombre_ganadora = ganadora_row.iloc[0]
         ahorro_total_periodo = ganadora_row.iloc[1]
         lista_fechas = df_consumos['Fecha'].unique()
+        num_facturas = len(lista_fechas)
+        ahorro_anual_sin_iva = (ahorro_total_periodo / num_facturas) * 12 if num_facturas > 0 else 0
+        ahorro_anual_con_iva = ahorro_anual_sin_iva * 1.21
 
-        # --- SECCIÓN: DATOS DEL CLIENTE ---
+        # ==========================================
+        # MEJORA 1: PÁGINA DE PORTADA / IMPACTO
+        # ==========================================
+        pdf.add_page()
+        pdf.ln(30)
+        
+        # Título de bienvenida
+        pdf.set_font('Arial', 'B', 22)
+        pdf.set_text_color(20, 50, 100)
+        pdf.cell(0, 15, f"¡Hola, {nombre_cliente}!", ln=True, align='C')
+        
+        pdf.set_font('Arial', '', 14)
+        pdf.set_text_color(60, 60, 60)
+        pdf.multi_cell(0, 10, "Hemos analizado tus facturas recientes y tenemos excelentes noticias.\nPuedes reducir tu gasto energético significativamente.", align='C')
+        
+        pdf.ln(20)
+        
+        # Cuadro de Ahorro Destacado
+        pdf.set_fill_color(240, 248, 255) # Azul suave de fondo
+        pdf.rect(20, 100, 170, 60, 'F')
+        
+        pdf.set_y(110)
+        pdf.set_font('Arial', 'B', 16)
+        pdf.set_text_color(20, 50, 100)
+        pdf.cell(0, 10, "TU AHORRO ANUAL ESTIMADO ES DE:", ln=True, align='C')
+        
+        pdf.set_font('Arial', 'B', 40)
+        pdf.set_text_color(34, 139, 34) # Verde éxito
+        pdf.cell(0, 25, f"{round(ahorro_anual_con_iva, 2)} EUR", ln=True, align='C')
+        
+        pdf.set_font('Arial', 'I', 11)
+        pdf.set_text_color(100)
+        pdf.cell(0, 10, f"(Incluyendo IVA y optimización de tarifas)", ln=True, align='C')
+        
+        pdf.ln(30)
+        
+        # Texto de confianza
+        pdf.set_font('Arial', '', 11)
+        pdf.set_text_color(80)
+        pdf.set_x(30)
+        pdf.multi_cell(150, 7, "Este estudio ha sido realizado de forma independiente por Energetika, analizando las mejores ofertas del mercado actual para encontrar la que mejor se adapta a tu perfil de consumo real.", align='C')
+
+        # ==========================================
+        # PÁGINA 2: DATOS Y TABLAS (LO DEMÁS IGUAL)
+        # ==========================================
+        pdf.add_page()
+
+        # SECCIÓN: DATOS DEL CLIENTE
         pdf.set_font('Arial', 'B', 11)
         pdf.set_text_color(0)
         pdf.cell(45, 8, "Cliente:", 0)
@@ -61,14 +111,14 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         pdf.cell(0, 8, compania_actual_manual, ln=True)
         pdf.ln(5)
 
-        # 2. TABLA 1: CONSUMOS (COLORES MÁS CLAROS ACORDES AL LOGO)
+        # TABLA 1: CONSUMOS
         pdf.set_font('Arial', 'B', 10)
         pdf.set_text_color(20, 50, 100)
         pdf.cell(0, 10, "1. RESUMEN DE CONSUMOS POR MESES ANALIZADOS", ln=True)
         
         pdf.set_x(30)
-        pdf.set_fill_color(210, 225, 240) # Azul muy claro (acorde al logo)
-        pdf.set_text_color(20, 50, 100)  # Texto en azul corporativo
+        pdf.set_fill_color(210, 225, 240) 
+        pdf.set_text_color(20, 50, 100)
         pdf.set_font('Arial', 'B', 8)
         pdf.cell(45, 7, " Mes de Factura", 1, 0, 'C', True)
         pdf.cell(50, 7, " Consumo Total (kWh)", 1, 0, 'C', True)
@@ -86,13 +136,13 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         
         pdf.ln(8)
 
-        # 3. TABLA 2: COMPARATIVA (COLORES MÁS CLAROS ACORDES AL LOGO)
+        # TABLA 2: COMPARATIVA
         pdf.set_font('Arial', 'B', 10)
         pdf.set_text_color(20, 50, 100)
         pdf.cell(0, 10, "2. COMPARATIVA DE COSTES Y AHORRO MENSUAL", ln=True)
         
         pdf.set_x(25)
-        pdf.set_fill_color(210, 225, 240) # Azul muy claro
+        pdf.set_fill_color(210, 225, 240)
         pdf.set_text_color(20, 50, 100)
         pdf.set_font('Arial', 'B', 8)
         pdf.cell(40, 7, " Periodo", 1, 0, 'C', True)
@@ -134,6 +184,7 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
                 pdf.set_text_color(0)
             except: continue
 
+        # Gráfica de Barras
         fig, ax = plt.subplots(figsize=(8, 4))
         colores = ['#2ecc71' if x >= 0 else '#e74c3c' for x in ahorros_grafica]
         ax.bar(meses_grafica, ahorros_grafica, color=colores, edgecolor='black', alpha=0.8)
@@ -142,29 +193,21 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         ax.set_title('Ahorro Mensual Estimado')
         plt.xticks(rotation=45)
         plt.tight_layout()
-        
         grafica_path = "temp_plot.png"
         fig.savefig(grafica_path, dpi=300)
         plt.close(fig) 
-        
-        pdf.ln(5)
         pdf.image(grafica_path, x=45, w=120)
-        pdf.ln(5)
 
-        # --- SECCIÓN: GRÁFICO DE PASTEL (COLORES CLAROS) ---
+        # Gráfica de Pastel (Colores Claros)
         pdf.set_font('Arial', 'B', 10)
-        pdf.set_text_color(0)
         pdf.cell(0, 10, f"4. DESGLOSE DE COSTES ESTIMADOS ({nombre_ganadora})", ln=True)
-
-        # Se asumen precios promedio para el desglose visual
         total_potencia = sum(df_consumos['Potencia (kW)'] * df_consumos['Días'] * 0.13)
         total_energia = sum((df_consumos['Consumo Punta (kWh)'] + df_consumos['Consumo Llano (kWh)'] + df_consumos['Consumo Valle (kWh)']) * 0.15)
         total_excedente = sum(df_consumos['Excedente (kWh)'] * 0.05)
 
         labels = ['Potencia (Fijo)', 'Energía (Consumo)']
         values = [total_potencia, total_energia]
-        colors_pie = ['#A9CCE3', '#ABEBC6'] # Colores claros solicitado
-
+        colors_pie = ['#A9CCE3', '#ABEBC6']
         if total_excedente > 0:
             labels.append('Excedentes')
             values.append(total_excedente)
@@ -174,25 +217,21 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         ax_pie.pie(values, labels=labels, autopct='%1.1f%%', startangle=140, colors=colors_pie, wedgeprops={'edgecolor': 'white'})
         ax_pie.axis('equal') 
         plt.tight_layout()
-
         pie_path = "temp_pie.png"
         fig_pie.savefig(pie_path, dpi=300)
         plt.close(fig_pie)
-
         pdf.image(pie_path, x=55, w=100)
-        pdf.ln(5)
 
-        # 4. TABLA 3: TOP 5
+        # Tabla TOP 5
         pdf.set_font('Arial', 'B', 10)
         pdf.set_text_color(0)
         pdf.cell(0, 10, "3. COMPARATIVA CON OTRAS OPCIONES DE MERCADO", ln=True)
         pdf.set_x(35)
-        pdf.set_fill_color(20, 50, 100) # Mantener este oscuro para contraste
+        pdf.set_fill_color(20, 50, 100)
         pdf.set_text_color(255)
         pdf.set_font('Arial', 'B', 8)
         pdf.cell(80, 7, " Compañía / Tarifa", 1, 0, 'L', True)
         pdf.cell(60, 7, " Ahorro Total Detectado", 1, 1, 'C', True)
-
         pdf.set_text_color(0)
         pdf.set_font('Arial', '', 8)
         for _, row in ranking_ordenado.head(5).iterrows():
@@ -202,32 +241,23 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
             pdf.cell(60, 7, f" +{round(row.iloc[1], 2)} EUR", 1, 1, 'C')
             pdf.set_text_color(0)
 
-        # --- SALTO DE PÁGINA PARA LA CONCLUSIÓN FINAL ---
+        # CONCLUSIÓN FINAL (En nueva página)
         pdf.add_page() 
-
-        num_facturas = len(lista_fechas)
-        ahorro_anual_sin_iva = (ahorro_total_periodo / num_facturas) * 12 if num_facturas > 0 else 0
-        ahorro_anual_con_iva = ahorro_anual_sin_iva * 1.21 
-
         pdf.set_fill_color(230, 240, 255)
         pdf.set_font('Arial', 'B', 14)
         pdf.cell(0, 15, " CONCLUSIÓN Y RECOMENDACIÓN FINAL", ln=True, fill=True, align='C')
         pdf.ln(5)
-        
         pdf.set_x(20)
         pdf.set_font('Arial', '', 11)
         pdf.multi_cell(170, 8, "Tras analizar su historial de consumo, la opción más eficiente para su suministro es la tarifa:", border='TLR', align='C')
-        
         pdf.set_x(20)
         pdf.set_font('Arial', 'B', 12)
         pdf.set_text_color(20, 50, 100)
         pdf.cell(170, 10, f"{str(nombre_ganadora).upper()}", border='LR', ln=True, align='C')
-        
         pdf.set_x(20)
         pdf.set_font('Arial', 'B', 11)
         pdf.set_text_color(34, 139, 34)
         pdf.cell(170, 10, f"AHORRO ANUAL ESTIMADO (SIN IVA): {round(ahorro_anual_sin_iva, 2)} EUR", border='LR', ln=True, align='C')
-        
         pdf.set_x(20)
         pdf.set_font('Arial', 'B', 12)
         pdf.set_text_color(34, 139, 34)
@@ -255,9 +285,7 @@ if archivo:
         df_det = pd.read_excel(archivo, sheet_name="Detalle Comparativa")
         df_ran = pd.read_excel(archivo, sheet_name="Ranking Ahorro")
         df_con = pd.read_excel(archivo, sheet_name="Datos Facturas Originales")
-        
         st.success("✅ Excel cargado.")
-        
         if st.button("🚀 Generar PDF"):
             pdf_bytes = generar_pdf(df_det, df_ran, df_con, nombre_cliente, direccion_cliente, compania_actual_manual)
             if pdf_bytes:
