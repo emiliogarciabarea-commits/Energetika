@@ -61,13 +61,13 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         pdf.cell(0, 8, compania_actual_manual, ln=True)
         pdf.ln(5)
 
-        # 2. TABLA 1: CONSUMOS (COLORES ACORDES AL LOGO)
+        # 2. TABLA 1: CONSUMOS (AZUL CORPORATIVO)
         pdf.set_font('Arial', 'B', 10)
         pdf.set_text_color(0)
         pdf.cell(0, 10, "1. RESUMEN DE CONSUMOS POR MESES ANALIZADOS", ln=True)
         
         pdf.set_x(30)
-        pdf.set_fill_color(20, 50, 100) # Azul Logo
+        pdf.set_fill_color(20, 50, 100) # AZUL LOGO
         pdf.set_text_color(255)
         pdf.set_font('Arial', 'B', 8)
         pdf.cell(45, 7, " Mes de Factura", 1, 0, 'C', True)
@@ -86,13 +86,13 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         
         pdf.ln(8)
 
-        # 3. TABLA 2 Y GRÁFICA DE BARRAS
+        # 3. TABLA 2 Y GRÁFICA DE BARRAS (AZUL CORPORATIVO)
         pdf.set_font('Arial', 'B', 10)
         pdf.set_text_color(0)
         pdf.cell(0, 10, "2. COMPARATIVA DE COSTES Y AHORRO MENSUAL", ln=True)
         
         pdf.set_x(25)
-        pdf.set_fill_color(20, 50, 100) # Azul Logo
+        pdf.set_fill_color(20, 50, 100) # AZUL LOGO
         pdf.set_text_color(255)
         pdf.set_font('Arial', 'B', 8)
         pdf.cell(40, 7, " Periodo", 1, 0, 'C', True)
@@ -206,7 +206,7 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
 
         num_facturas = len(lista_fechas)
         ahorro_anual_sin_iva = (ahorro_total_periodo / num_facturas) * 12 if num_facturas > 0 else 0
-        ahorro_anual_con_iva = ahorro_anual_sin_iva * 1.21 # Ejemplo con IVA 21%
+        ahorro_anual_con_iva = ahorro_anual_sin_iva * 1.21 
 
         pdf.set_fill_color(230, 240, 255)
         pdf.set_font('Arial', 'B', 14)
