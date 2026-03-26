@@ -101,8 +101,8 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, df_precios_ganadora, nombre
         for fecha in lista_fechas:
             mes_data = df_detalle[df_detalle['Mes/Fecha'] == fecha]
             try:
-                c_act = mes_data[mes_data['Compañía/Tarifa'].str.contains("ACTUAL", na=False)]['Coste (€)'].values[0]
-                c_pro = mes_data[mes_data['Compañía/Tarifa'] == nombre_ganadora]['Coste (€)'].values[0]
+                c_act = mes_data[mes_data['Compañía/Tarifa'].str.contains("ACTUAL", na=False)]['Coste (€)'].sum()
+                c_pro = mes_data[mes_data['Compañía/Tarifa'] == nombre_ganadora]['Coste (€)'].sum()
                 ahorro_mes = c_act - c_pro
                 meses_grafica.append(str(fecha)); ahorros_grafica.append(ahorro_mes)
                 pdf.set_x(25); pdf.set_text_color(0); pdf.cell(40, 7, f" {fecha}", 1); pdf.cell(40, 7, f" {round(c_act, 2)} EUR", 1, 0, 'R'); pdf.cell(40, 7, f" {round(c_pro, 2)} EUR", 1, 0, 'R')
@@ -179,13 +179,26 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, df_precios_ganadora, nombre
         pdf.set_x(20); pdf.set_font('Arial', 'B', 11); pdf.set_text_color(34, 139, 34); pdf.cell(170, 10, f"AHORRO ANUAL ESTIMADO SIN IVA: {round(ahorro_anual_sin_iva, 2)} EUR", border='LR', ln=True, align='C')
         pdf.set_x(20); pdf.set_font('Arial', 'B', 12); pdf.set_text_color(34, 139, 34); pdf.cell(170, 12, f"AHORRO ANUAL ESTIMADO CON IVA (21%): {round(ahorro_anual_con_iva, 2)} EUR / AÑO", border='BLR', ln=True, align='C')
 
+        # --- NUEVA GRÁFICA: COMPARATIVA IMPACTO GASTO VS AHORRO ---
+        pdf.ln(10)
+        fig_vs, ax_vs = plt.subplots(figsize=(7, 4))
+        g_act_an = (coste_actual_total / num_facturas) * 12 * 1.21
+        g_ah_an = ahorro_anual_con_iva
+        g_fin_an = g_act_an - g_ah_an
+        ax_vs.bar(['Situación Actual', 'Nuestra Propuesta'], [g_act_an, 0], color='#e74c3c', label='Gasto Actual', width=0.5)
+        ax_vs.bar(['Situación Actual', 'Nuestra Propuesta'], [0, g_fin_an], color='#2ecc71', label='Nuevo Coste', width=0.5)
+        ax_vs.bar(['Situación Actual', 'Nuestra Propuesta'], [0, g_ah_an], bottom=[0, g_fin_an], color='#f1c40f', label='Tu Ahorro', width=0.5)
+        ax_vs.set_ylabel('Euros (€) al año'); ax_vs.set_title('PROYECCIÓN DE GASTO ANUAL CON IVA', fontsize=10)
+        ax_vs.legend(loc='lower center', bbox_to_anchor=(0.5, -0.2), ncol=3, fontsize=8); plt.tight_layout()
+        vs_p = "temp_vs.png"; fig_vs.savefig(vs_p, dpi=300); plt.close(fig_vs); pdf.image(vs_p, x=55, w=100)
+
         # --- SECCIÓN QR PERSONALIZADO ---
+        if pdf.get_y() > 220: pdf.add_page()
         pdf.ln(10)
         qr = qrcode.QRCode(box_size=10, border=2)
         url_wa = "https://wa.me/4915154663318?text=Hola,%20me%20interesa%20contratar%20la%20tarifa%20ganadora"
         qr.add_data(url_wa)
         qr.make(fit=True)
-        # Generar QR en azul corporativo (20, 50, 100)
         qr_img = qr.make_image(fill_color=(20, 50, 100), back_color="white")
         qr_path = "temp_qr.png"
         qr_img.save(qr_path)
