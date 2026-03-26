@@ -149,7 +149,7 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, df_precios_ganadora, nombre
             pdf.set_x(35); pdf.cell(80, 7, f" {row.iloc[0]}", 1); pdf.set_text_color(34, 139, 34); pdf.cell(60, 7, f" +{round(row.iloc[1], 2)} EUR", 1, 1, 'C'); pdf.set_text_color(0)
 
         # ==========================================
-        # PÁGINA 3: CONCLUSIÓN FINAL (Gráfica grande, QR compacto)
+        # PÁGINA 3: CONCLUSIÓN FINAL
         # ==========================================
         pdf.add_page(); pdf.set_fill_color(230, 240, 255); pdf.set_font('Arial', 'B', 14)
         pdf.cell(0, 12, " CONCLUSIÓN Y RECOMENDACIÓN FINAL", ln=True, fill=True, align='C')
@@ -176,66 +176,4 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, df_precios_ganadora, nombre
         pdf.ln(5) 
         pdf.set_x(20); pdf.set_font('Arial', '', 11); pdf.multi_cell(170, 7, f"La opción más eficiente para su suministro es {nombre_ganadora}:", align='C')
         pdf.set_x(20); pdf.set_font('Arial', 'B', 12); pdf.set_text_color(20, 50, 100); pdf.cell(170, 9, f"{str(nombre_ganadora).upper()}", border='TLR', ln=True, align='C')
-        pdf.set_x(20); pdf.set_font('Arial', 'B', 11); pdf.set_text_color(34, 139, 34); pdf.cell(170, 9, f"AHORRO ANUAL ESTIMADO SIN IVA: {round(ahorro_anual_sin_iva, 2)} EUR", border='LR', ln=True, align='C')
-        pdf.set_x(20); pdf.set_font('Arial', 'B', 12); pdf.set_text_color(34, 139, 34); pdf.cell(170, 11, f"AHORRO ANUAL ESTIMADO CON IVA (21%): {round(ahorro_anual_con_iva, 2)} EUR / AÑO", border='BLR', ln=True, align='C')
-
-        # --- MEJORA: GRÁFICA COMPARATIVA MÁS GRANDE ---
-        pdf.ln(3)
-        # figsize se mantiene igual para control de proporciones internas
-        fig_vs, ax_vs = plt.subplots(figsize=(6, 3)) 
-        g_act_an = (coste_actual_total / num_facturas) * 12 * 1.21
-        g_ah_an = ahorro_anual_con_iva
-        g_fin_an = g_act_an - g_ah_an
-        ax_vs.bar(['Situación Actual', 'Nuestra Propuesta'], [g_act_an, 0], color='#e74c3c', label='Gasto Actual', width=0.4)
-        ax_vs.bar(['Situación Actual', 'Nuestra Propuesta'], [0, g_fin_an], color='#2ecc71', label='Nuevo Coste', width=0.4)
-        ax_vs.bar(['Situación Actual', 'Nuestra Propuesta'], [0, g_ah_an], bottom=[0, g_fin_an], color='#f1c40f', label='Tu Ahorro', width=0.4)
-        
-        ax_vs.set_ylabel('Euros (€) al año', fontsize=9); ax_vs.set_title('PROYECCIÓN DE GASTO ANUAL CON IVA', fontsize=10)
-        ax_vs.tick_params(axis='both', which='major', labelsize=8)
-        ax_vs.legend(loc='lower center', bbox_to_anchor=(0.5, -0.25), ncol=3, fontsize=7); plt.tight_layout()
-        
-        vs_p = "temp_vs.png"; fig_vs.savefig(vs_p, dpi=300); plt.close(fig_vs)
-        # MODIFICACIÓN: w incrementado (de 90 a 130) y x ajustado para centrar
-        pdf.image(vs_p, x=40, w=130) 
-
-        # --- SECCIÓN QR PEQUEÑO Y COMPACTO ---
-        pdf.ln(3) 
-        # Mantenemos box_size pequeño
-        qr = qrcode.QRCode(box_size=6, border=2) 
-        url_wa = "https://wa.me/4915154663318?text=Hola,%20me%20interesa%20contratar%20la%20tarifa%20ganadora"
-        qr.add_data(url_wa)
-        qr.make(fit=True)
-        qr_img = qr.make_image(fill_color=(20, 50, 100), back_color="white")
-        qr_path = "temp_qr.png"
-        qr_img.save(qr_path)
-        
-        pdf.set_font('Arial', 'B', 9); pdf.set_text_color(20, 50, 100)
-        pdf.cell(0, 4, "Escanea para contratación directa vía WhatsApp:", ln=True, align='C')
-        # Mantenemos w pequeño (25)
-        pdf.image(qr_path, x=92, w=25) 
-
-        return pdf.output(dest='S').encode('latin-1')
-    except Exception as e:
-        st.error(f"Error técnico: {e}"); return None
-
-# --- INTERFAZ STREAMLIT ---
-st.title("📄 Generador Pro | Energetika")
-c1, c2 = st.columns(2)
-with c1: nombre_cliente = st.text_input("Nombre completo cliente:", "Sheila Maria Gonzalez Ordoñez"); direccion_cliente = st.text_input("Dirección:", "Calle Ejemplo 123")
-with c2: compania_actual_manual = st.text_input("Compañía actual:", "Energía XXI")
-archivo = st.file_uploader("Sube el archivo Excel", type=["xlsx"])
-
-if archivo:
-    try:
-        df_det = pd.read_excel(archivo, sheet_name="Detalle Comparativa")
-        df_ran = pd.read_excel(archivo, sheet_name="Ranking Ahorro")
-        df_con = pd.read_excel(archivo, sheet_name="Datos Facturas Originales")
-        df_pre = pd.read_excel(archivo, sheet_name=3)
-
-        st.success("✅ Excel cargado.")
-        if st.button("🚀 Generar PDF"):
-            pdf_bytes = generar_pdf(df_det, df_ran, df_con, df_pre, nombre_cliente, direccion_cliente, compania_actual_manual)
-            if pdf_bytes:
-                st.download_button(label="📥 Descargar Informe", data=pdf_bytes, file_name=f"Auditoria_{nombre_cliente.replace(' ', '_')}.pdf", mime="application/pdf")
-    except Exception as e:
-        st.error(f"Error al leer el Excel: {e}")
+        pdf.set_x(20); pdf.set_font('Arial', 'B', 11); pdf.set_text_color(34, 139, 34); pdf.cell(170, 9, f"AHORRO ANUAL ESTIMADO SIN IVA: {round(ahorro_anual_sin_iva, 2)} EUR", border='LR', ln=True, align='C
