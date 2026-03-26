@@ -47,13 +47,17 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         ahorro_anual_sin_iva = (ahorro_total_periodo / num_facturas) * 12 if num_facturas > 0 else 0
         ahorro_anual_con_iva = ahorro_anual_sin_iva * 1.21
 
+        # Extraer solo el primer nombre para el saludo natural
+        primer_nombre = nombre_cliente.split()[0] if nombre_cliente else "cliente"
+
         # ==========================================
         # PÁGINA 1: PORTADA DE IMPACTO
         # ==========================================
         pdf.add_page()
         pdf.ln(30)
         pdf.set_font('Arial', 'B', 22); pdf.set_text_color(20, 50, 100)
-        pdf.cell(0, 15, f"¡Hola, {nombre_cliente}!", ln=True, align='C')
+        pdf.cell(0, 15, f"¡Hola, {primer_nombre}!", ln=True, align='C') # Solo nombre
+        
         pdf.set_font('Arial', '', 14); pdf.set_text_color(60, 60, 60)
         pdf.multi_cell(0, 10, "Hemos analizado tus facturas recientes y tenemos excelentes noticias.\nPuedes reducir tu gasto energético significativamente.", align='C')
         
@@ -74,7 +78,7 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         # ==========================================
         pdf.add_page()
         pdf.set_font('Arial', 'B', 11); pdf.set_text_color(0)
-        pdf.cell(45, 8, "Cliente:", 0); pdf.set_font('Arial', '', 11); pdf.cell(0, 8, nombre_cliente, ln=True)
+        pdf.cell(45, 8, "Cliente:", 0); pdf.set_font('Arial', '', 11); pdf.cell(0, 8, nombre_cliente, ln=True) # Aquí sí va completo
         pdf.cell(45, 8, "Dirección:", 0); pdf.cell(0, 8, direccion_cliente, ln=True)
         pdf.set_font('Arial', 'B', 11); pdf.cell(45, 8, "Suministro Actual:", 0); pdf.set_font('Arial', '', 11); pdf.set_text_color(200, 0, 0); pdf.cell(0, 8, compania_actual_manual, ln=True)
         
@@ -142,7 +146,7 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         pdf.multi_cell(170, 8, "Proyección de ahorro anual para las opciones más competitivas del mercado:", align='C')
         pdf.ln(5)
 
-        # --- TABLA EN CONCLUSIONES (MODIFICACIÓN SIN/CON IVA) ---
+        # TABLA CONCLUSIONES
         pdf.set_x(10); pdf.set_fill_color(245, 245, 245); pdf.set_font('Arial', 'B', 8)
         pdf.cell(60, 8, " Compañía / Tarifa", 1, 0, 'C', True)
         pdf.cell(45, 8, " Ahorro Anual Sin IVA", 1, 0, 'C', True)
@@ -152,15 +156,13 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
         pdf.set_font('Arial', '', 8)
         for _, row in ranking_ordenado.head(5).iterrows():
             nombre_cia = row.iloc[0]
-            ahorro_periodo = row.iloc[1]
-            anual_si = (ahorro_periodo / num_facturas) * 12
-            anual_ci = anual_si * 1.21
-            porc = (ahorro_periodo / coste_actual_total) * 100 if coste_actual_total > 0 else 0
-            
-            pdf.set_x(10)
-            pdf.cell(60, 8, f" {nombre_cia}", 1)
-            pdf.cell(45, 8, f" {round(anual_si, 2)} EUR", 1, 0, 'C')
-            pdf.cell(45, 8, f" {round(anual_ci, 2)} EUR", 1, 0, 'C')
+            ah_per = row.iloc[1]
+            an_si = (ah_per / num_facturas) * 12
+            an_ci = an_si * 1.21
+            porc = (ah_per / coste_actual_total) * 100 if coste_actual_total > 0 else 0
+            pdf.set_x(10); pdf.cell(60, 8, f" {nombre_cia}", 1)
+            pdf.cell(45, 8, f" {round(an_si, 2)} EUR", 1, 0, 'C')
+            pdf.cell(45, 8, f" {round(an_ci, 2)} EUR", 1, 0, 'C')
             pdf.set_text_color(34, 139, 34); pdf.cell(40, 8, f" {round(porc, 1)}%", 1, 1, 'C'); pdf.set_text_color(0)
 
         pdf.ln(10)
@@ -176,7 +178,7 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, nombre_cliente, direccion_c
 # --- INTERFAZ STREAMLIT ---
 st.title("📄 Generador Pro | Energetika")
 c1, c2 = st.columns(2)
-with c1: nombre_cliente = st.text_input("Nombre cliente:", "Cliente Energetika"); direccion_cliente = st.text_input("Dirección:", "Calle Ejemplo 123")
+with c1: nombre_cliente = st.text_input("Nombre completo cliente:", "Sheila Maria Gonzalez Ordoñez"); direccion_cliente = st.text_input("Dirección:", "Calle Ejemplo 123")
 with c2: compania_actual_manual = st.text_input("Compañía actual:", "Energía XXI")
 archivo = st.file_uploader("Sube el archivo Excel", type=["xlsx"])
 
