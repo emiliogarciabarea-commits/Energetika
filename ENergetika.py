@@ -5,7 +5,7 @@ import os
 import matplotlib.pyplot as plt
 from fpdf import FPDF
 from datetime import datetime
-import qrcode  # Nueva librería para el QR
+import qrcode  # Librería para el QR
 
 # --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(page_title="Energetika Pro", layout="centered")
@@ -179,12 +179,17 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, df_precios_ganadora, nombre
         pdf.set_x(20); pdf.set_font('Arial', 'B', 11); pdf.set_text_color(34, 139, 34); pdf.cell(170, 10, f"AHORRO ANUAL ESTIMADO SIN IVA: {round(ahorro_anual_sin_iva, 2)} EUR", border='LR', ln=True, align='C')
         pdf.set_x(20); pdf.set_font('Arial', 'B', 12); pdf.set_text_color(34, 139, 34); pdf.cell(170, 12, f"AHORRO ANUAL ESTIMADO CON IVA (21%): {round(ahorro_anual_con_iva, 2)} EUR / AÑO", border='BLR', ln=True, align='C')
 
-        # --- SECCIÓN NUEVA: CÓDIGO QR WHATSAPP ---
+        # --- SECCIÓN QR PERSONALIZADO ---
         pdf.ln(10)
+        qr = qrcode.QRCode(box_size=10, border=2)
         url_wa = "https://wa.me/4915154663318?text=Hola,%20me%20interesa%20contratar%20la%20tarifa%20ganadora"
-        qr_img = qrcode.make(url_wa)
+        qr.add_data(url_wa)
+        qr.make(fit=True)
+        # Generar QR en azul corporativo (20, 50, 100)
+        qr_img = qr.make_image(fill_color=(20, 50, 100), back_color="white")
         qr_path = "temp_qr.png"
         qr_img.save(qr_path)
+        
         pdf.set_font('Arial', 'B', 10); pdf.set_text_color(20, 50, 100)
         pdf.cell(0, 5, "Escanea para contratacion directa vía WhatsApp:", ln=True, align='C')
         pdf.image(qr_path, x=85, w=40)
