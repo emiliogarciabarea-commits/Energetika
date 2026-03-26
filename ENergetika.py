@@ -71,7 +71,8 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, df_precios_ganadora, nombre
         pdf.cell(0, 10, f"(Lo que supone un ahorro del {round(porcentaje_ahorro_ganadora, 1)}% en tu factura)", ln=True, align='C')
         
         pdf.ln(30); pdf.set_font('Arial', '', 11); pdf.set_text_color(80); pdf.set_x(30)
-        pdf.multi_cell(150, 7, "Este estudio ha sido realizado de forma independiente por Energetika, analizando las mejores ofertas del mercado actual para encontrar la que mejor se adapta a tu perfil de consumo real.", align='C')
+        # TEXTO ACTUALIZADO:
+        pdf.multi_cell(150, 7, "Este estudio ha sido realizado de forma independiente por Energetika, analizando y comparando entre más de 35 tarifas del mercado actual para encontrar la que mejor se adapta a tu perfil de consumo real.", align='C')
 
         # ==========================================
         # PÁGINA 2: ANÁLISIS DETALLADO
