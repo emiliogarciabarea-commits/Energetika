@@ -149,52 +149,61 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, df_precios_ganadora, nombre
             pdf.set_x(35); pdf.cell(80, 7, f" {row.iloc[0]}", 1); pdf.set_text_color(34, 139, 34); pdf.cell(60, 7, f" +{round(row.iloc[1], 2)} EUR", 1, 1, 'C'); pdf.set_text_color(0)
 
         # ==========================================
-        # PÁGINA 3: CONCLUSIÓN FINAL
+        # PÁGINA 3: CONCLUSIÓN FINAL (Compactada)
         # ==========================================
         pdf.add_page(); pdf.set_fill_color(230, 240, 255); pdf.set_font('Arial', 'B', 14)
-        pdf.cell(0, 15, " CONCLUSIÓN Y RECOMENDACIÓN FINAL", ln=True, fill=True, align='C')
-        pdf.ln(5); pdf.set_x(20); pdf.set_font('Arial', '', 11); pdf.set_text_color(0)
-        pdf.multi_cell(170, 8, "Proyección de ahorro anual para las opciones más competitivas del mercado:", align='C')
-        pdf.ln(5)
+        pdf.cell(0, 12, " CONCLUSIÓN Y RECOMENDACIÓN FINAL", ln=True, fill=True, align='C')
+        pdf.ln(3); pdf.set_x(20); pdf.set_font('Arial', '', 11); pdf.set_text_color(0)
+        pdf.multi_cell(170, 7, "Proyección de ahorro anual para las opciones más competitivas del mercado:", align='C')
+        pdf.ln(3)
 
         pdf.set_x(10); pdf.set_fill_color(245, 245, 245); pdf.set_font('Arial', 'B', 8)
-        pdf.cell(60, 8, " Compañía / Tarifa", 1, 0, 'C', True)
-        pdf.cell(45, 8, " Ahorro Anual Sin IVA", 1, 0, 'C', True)
-        pdf.cell(45, 8, " Ahorro Anual Con IVA", 1, 0, 'C', True)
-        pdf.cell(40, 8, " % Ahorro", 1, 1, 'C', True)
+        pdf.cell(60, 7, " Compañía / Tarifa", 1, 0, 'C', True)
+        pdf.cell(45, 7, " Ahorro Anual Sin IVA", 1, 0, 'C', True)
+        pdf.cell(45, 7, " Ahorro Anual Con IVA", 1, 0, 'C', True)
+        pdf.cell(40, 7, " % Ahorro", 1, 1, 'C', True)
 
         pdf.set_font('Arial', '', 8)
         for _, row in ranking_ordenado.head(5).iterrows():
             nombre_cia = row.iloc[0]; ah_per = row.iloc[1]
             an_si = (ah_per / num_facturas) * 12; an_ci = an_si * 1.21
             porc = (ah_per / coste_actual_total) * 100 if coste_actual_total > 0 else 0
-            pdf.set_x(10); pdf.cell(60, 8, f" {nombre_cia}", 1)
-            pdf.cell(45, 8, f" {round(an_si, 2)} EUR", 1, 0, 'C')
-            pdf.cell(45, 8, f" {round(an_ci, 2)} EUR", 1, 0, 'C')
-            pdf.set_text_color(34, 139, 34); pdf.cell(40, 8, f" {round(porc, 1)}%", 1, 1, 'C'); pdf.set_text_color(0)
+            pdf.set_x(10); pdf.cell(60, 7, f" {nombre_cia}", 1)
+            pdf.cell(45, 7, f" {round(an_si, 2)} EUR", 1, 0, 'C')
+            pdf.cell(45, 7, f" {round(an_ci, 2)} EUR", 1, 0, 'C')
+            pdf.set_text_color(34, 139, 34); pdf.cell(40, 7, f" {round(porc, 1)}%", 1, 1, 'C'); pdf.set_text_color(0)
 
-        pdf.ln(10)
-        pdf.set_x(20); pdf.set_font('Arial', '', 11); pdf.multi_cell(170, 8, f"La opción más eficiente para su suministro es {nombre_ganadora}:", align='C')
-        pdf.set_x(20); pdf.set_font('Arial', 'B', 12); pdf.set_text_color(20, 50, 100); pdf.cell(170, 10, f"{str(nombre_ganadora).upper()}", border='TLR', ln=True, align='C')
-        pdf.set_x(20); pdf.set_font('Arial', 'B', 11); pdf.set_text_color(34, 139, 34); pdf.cell(170, 10, f"AHORRO ANUAL ESTIMADO SIN IVA: {round(ahorro_anual_sin_iva, 2)} EUR", border='LR', ln=True, align='C')
-        pdf.set_x(20); pdf.set_font('Arial', 'B', 12); pdf.set_text_color(34, 139, 34); pdf.cell(170, 12, f"AHORRO ANUAL ESTIMADO CON IVA (21%): {round(ahorro_anual_con_iva, 2)} EUR / AÑO", border='BLR', ln=True, align='C')
+        pdf.ln(5) # Espacio reducido
+        pdf.set_x(20); pdf.set_font('Arial', '', 11); pdf.multi_cell(170, 7, f"La opción más eficiente para su suministro es {nombre_ganadora}:", align='C')
+        pdf.set_x(20); pdf.set_font('Arial', 'B', 12); pdf.set_text_color(20, 50, 100); pdf.cell(170, 9, f"{str(nombre_ganadora).upper()}", border='TLR', ln=True, align='C')
+        pdf.set_x(20); pdf.set_font('Arial', 'B', 11); pdf.set_text_color(34, 139, 34); pdf.cell(170, 9, f"AHORRO ANUAL ESTIMADO SIN IVA: {round(ahorro_anual_sin_iva, 2)} EUR", border='LR', ln=True, align='C')
+        pdf.set_x(20); pdf.set_font('Arial', 'B', 12); pdf.set_text_color(34, 139, 34); pdf.cell(170, 11, f"AHORRO ANUAL ESTIMADO CON IVA (21%): {round(ahorro_anual_con_iva, 2)} EUR / AÑO", border='BLR', ln=True, align='C')
 
-        # --- GRÁFICA: COMPARATIVA IMPACTO GASTO VS AHORRO ---
-        pdf.ln(8)
-        fig_vs, ax_vs = plt.subplots(figsize=(7, 4))
+        # --- MEJORA: GRÁFICA COMPARATIVA MÁS PEQUEÑA ---
+        pdf.ln(3)
+        # figsize reducido para compactar
+        fig_vs, ax_vs = plt.subplots(figsize=(6, 3)) 
         g_act_an = (coste_actual_total / num_facturas) * 12 * 1.21
         g_ah_an = ahorro_anual_con_iva
         g_fin_an = g_act_an - g_ah_an
-        ax_vs.bar(['Situación Actual', 'Nuestra Propuesta'], [g_act_an, 0], color='#e74c3c', label='Gasto Actual', width=0.5)
-        ax_vs.bar(['Situación Actual', 'Nuestra Propuesta'], [0, g_fin_an], color='#2ecc71', label='Nuevo Coste', width=0.5)
-        ax_vs.bar(['Situación Actual', 'Nuestra Propuesta'], [0, g_ah_an], bottom=[0, g_fin_an], color='#f1c40f', label='Tu Ahorro', width=0.5)
-        ax_vs.set_ylabel('Euros (€) al año'); ax_vs.set_title('PROYECCIÓN DE GASTO ANUAL CON IVA', fontsize=10)
-        ax_vs.legend(loc='lower center', bbox_to_anchor=(0.5, -0.25), ncol=3, fontsize=8); plt.tight_layout()
-        vs_p = "temp_vs.png"; fig_vs.savefig(vs_p, dpi=300); plt.close(fig_vs); pdf.image(vs_p, x=65, w=80)
+        ax_vs.bar(['Situación Actual', 'Nuestra Propuesta'], [g_act_an, 0], color='#e74c3c', label='Gasto Actual', width=0.4)
+        ax_vs.bar(['Situación Actual', 'Nuestra Propuesta'], [0, g_fin_an], color='#2ecc71', label='Nuevo Coste', width=0.4)
+        ax_vs.bar(['Situación Actual', 'Nuestra Propuesta'], [0, g_ah_an], bottom=[0, g_fin_an], color='#f1c40f', label='Tu Ahorro', width=0.4)
+        
+        # Fuentes más pequeñas dentro de la gráfica
+        ax_vs.set_ylabel('Euros (€) al año', fontsize=9); ax_vs.set_title('PROYECCIÓN DE GASTO ANUAL CON IVA', fontsize=10)
+        ax_vs.tick_params(axis='both', which='major', labelsize=8)
+        ax_vs.legend(loc='lower center', bbox_to_anchor=(0.5, -0.25), ncol=3, fontsize=7); plt.tight_layout()
+        
+        vs_p = "temp_vs.png"; fig_vs.savefig(vs_p, dpi=300); plt.close(fig_vs)
+        # w reducido para ocupar menos ancho y alto proporcional
+        pdf.image(vs_p, x=60, w=90) 
 
-        # --- SECCIÓN QR REDUCIDA ---
-        if pdf.get_y() > 240: pdf.add_page()
-        qr = qrcode.QRCode(box_size=7, border=2) # Reducido box_size de 10 a 7
+        # --- SECCIÓN QR MÁS PEQUEÑO Y COMPACTO ---
+        # No saltamos de página, confiamos en el compactado
+        pdf.ln(3) 
+        # box_size reducido para generar un QR físicamente más pequeño
+        qr = qrcode.QRCode(box_size=6, border=2) 
         url_wa = "https://wa.me/4915154663318?text=Hola,%20me%20interesa%20contratar%20la%20tarifa%20ganadora"
         qr.add_data(url_wa)
         qr.make(fit=True)
@@ -202,10 +211,10 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, df_precios_ganadora, nombre
         qr_path = "temp_qr.png"
         qr_img.save(qr_path)
         
-        pdf.set_y(-50) # Posicionamiento fijo cerca del pie para asegurar espacio
         pdf.set_font('Arial', 'B', 9); pdf.set_text_color(20, 50, 100)
-        pdf.cell(0, 5, "Escanea para contratación directa vía WhatsApp:", ln=True, align='C')
-        pdf.image(qr_path, x=90, w=30) # Reducido ancho de 40 a 30
+        pdf.cell(0, 4, "Escanea para contratación directa vía WhatsApp:", ln=True, align='C')
+        # w reducido en la inserción del PDF
+        pdf.image(qr_path, x=92, w=25) 
 
         return pdf.output(dest='S').encode('latin-1')
     except Exception as e:
