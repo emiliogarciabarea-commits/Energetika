@@ -101,8 +101,8 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, df_precios_ganadora, nombre
         for fecha in lista_fechas:
             mes_data = df_detalle[df_detalle['Mes/Fecha'] == fecha]
             try:
-                c_act = mes_data[mes_data['Compañía/Tarifa'].str.contains("ACTUAL", na=False)]['Coste (€)'].sum()
-                c_pro = mes_data[mes_data['Compañía/Tarifa'] == nombre_ganadora]['Coste (€)'].sum()
+                c_act = mes_data[mes_data['Compañía/Tarifa'].str.contains("ACTUAL", na=False)]['Coste (€)'].values[0]
+                c_pro = mes_data[mes_data['Compañía/Tarifa'] == nombre_ganadora]['Coste (€)'].values[0]
                 ahorro_mes = c_act - c_pro
                 meses_grafica.append(str(fecha)); ahorros_grafica.append(ahorro_mes)
                 pdf.set_x(25); pdf.set_text_color(0); pdf.cell(40, 7, f" {fecha}", 1); pdf.cell(40, 7, f" {round(c_act, 2)} EUR", 1, 0, 'R'); pdf.cell(40, 7, f" {round(c_pro, 2)} EUR", 1, 0, 'R')
@@ -149,7 +149,7 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, df_precios_ganadora, nombre
             pdf.set_x(35); pdf.cell(80, 7, f" {row.iloc[0]}", 1); pdf.set_text_color(34, 139, 34); pdf.cell(60, 7, f" +{round(row.iloc[1], 2)} EUR", 1, 1, 'C'); pdf.set_text_color(0)
 
         # ==========================================
-        # PÁGINA 3: CONCLUSIÓN FINAL (Compactada)
+        # PÁGINA 3: CONCLUSIÓN FINAL (Gráfica grande, QR compacto)
         # ==========================================
         pdf.add_page(); pdf.set_fill_color(230, 240, 255); pdf.set_font('Arial', 'B', 14)
         pdf.cell(0, 12, " CONCLUSIÓN Y RECOMENDACIÓN FINAL", ln=True, fill=True, align='C')
@@ -173,15 +173,15 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, df_precios_ganadora, nombre
             pdf.cell(45, 7, f" {round(an_ci, 2)} EUR", 1, 0, 'C')
             pdf.set_text_color(34, 139, 34); pdf.cell(40, 7, f" {round(porc, 1)}%", 1, 1, 'C'); pdf.set_text_color(0)
 
-        pdf.ln(5) # Espacio reducido
+        pdf.ln(5) 
         pdf.set_x(20); pdf.set_font('Arial', '', 11); pdf.multi_cell(170, 7, f"La opción más eficiente para su suministro es {nombre_ganadora}:", align='C')
         pdf.set_x(20); pdf.set_font('Arial', 'B', 12); pdf.set_text_color(20, 50, 100); pdf.cell(170, 9, f"{str(nombre_ganadora).upper()}", border='TLR', ln=True, align='C')
         pdf.set_x(20); pdf.set_font('Arial', 'B', 11); pdf.set_text_color(34, 139, 34); pdf.cell(170, 9, f"AHORRO ANUAL ESTIMADO SIN IVA: {round(ahorro_anual_sin_iva, 2)} EUR", border='LR', ln=True, align='C')
         pdf.set_x(20); pdf.set_font('Arial', 'B', 12); pdf.set_text_color(34, 139, 34); pdf.cell(170, 11, f"AHORRO ANUAL ESTIMADO CON IVA (21%): {round(ahorro_anual_con_iva, 2)} EUR / AÑO", border='BLR', ln=True, align='C')
 
-        # --- MEJORA: GRÁFICA COMPARATIVA MÁS PEQUEÑA ---
+        # --- MEJORA: GRÁFICA COMPARATIVA MÁS GRANDE ---
         pdf.ln(3)
-        # figsize reducido para compactar
+        # figsize se mantiene igual para control de proporciones internas
         fig_vs, ax_vs = plt.subplots(figsize=(6, 3)) 
         g_act_an = (coste_actual_total / num_facturas) * 12 * 1.21
         g_ah_an = ahorro_anual_con_iva
@@ -190,19 +190,17 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, df_precios_ganadora, nombre
         ax_vs.bar(['Situación Actual', 'Nuestra Propuesta'], [0, g_fin_an], color='#2ecc71', label='Nuevo Coste', width=0.4)
         ax_vs.bar(['Situación Actual', 'Nuestra Propuesta'], [0, g_ah_an], bottom=[0, g_fin_an], color='#f1c40f', label='Tu Ahorro', width=0.4)
         
-        # Fuentes más pequeñas dentro de la gráfica
         ax_vs.set_ylabel('Euros (€) al año', fontsize=9); ax_vs.set_title('PROYECCIÓN DE GASTO ANUAL CON IVA', fontsize=10)
         ax_vs.tick_params(axis='both', which='major', labelsize=8)
         ax_vs.legend(loc='lower center', bbox_to_anchor=(0.5, -0.25), ncol=3, fontsize=7); plt.tight_layout()
         
         vs_p = "temp_vs.png"; fig_vs.savefig(vs_p, dpi=300); plt.close(fig_vs)
-        # w reducido para ocupar menos ancho y alto proporcional
-        pdf.image(vs_p, x=60, w=90) 
+        # MODIFICACIÓN: w incrementado (de 90 a 130) y x ajustado para centrar
+        pdf.image(vs_p, x=40, w=130) 
 
-        # --- SECCIÓN QR MÁS PEQUEÑO Y COMPACTO ---
-        # No saltamos de página, confiamos en el compactado
+        # --- SECCIÓN QR PEQUEÑO Y COMPACTO ---
         pdf.ln(3) 
-        # box_size reducido para generar un QR físicamente más pequeño
+        # Mantenemos box_size pequeño
         qr = qrcode.QRCode(box_size=6, border=2) 
         url_wa = "https://wa.me/4915154663318?text=Hola,%20me%20interesa%20contratar%20la%20tarifa%20ganadora"
         qr.add_data(url_wa)
@@ -213,7 +211,7 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, df_precios_ganadora, nombre
         
         pdf.set_font('Arial', 'B', 9); pdf.set_text_color(20, 50, 100)
         pdf.cell(0, 4, "Escanea para contratación directa vía WhatsApp:", ln=True, align='C')
-        # w reducido en la inserción del PDF
+        # Mantenemos w pequeño (25)
         pdf.image(qr_path, x=92, w=25) 
 
         return pdf.output(dest='S').encode('latin-1')
