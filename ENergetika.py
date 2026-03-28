@@ -5,7 +5,7 @@ import os
 import matplotlib.pyplot as plt
 from fpdf import FPDF
 from datetime import datetime
-import qrcode  # Nueva librería para el QR
+import qrcode  # Librería para el QR
 
 # --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(page_title="Energetika Pro", layout="centered")
@@ -45,7 +45,7 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, df_precios_ganadora, nombre
         
         lista_fechas = df_consumos['Fecha'].unique()
         
-        # --- CORRECCIÓN: CÁLCULO BASADO EN DÍAS REALES ---
+        # --- NUEVA LÓGICA DE CÁLCULO POR DÍAS REALES ---
         total_dias_analizados = df_consumos['Días'].sum()
         if total_dias_analizados > 0:
             ahorro_por_dia = ahorro_total_periodo / total_dias_analizados
@@ -78,7 +78,7 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, df_precios_ganadora, nombre
         pdf.cell(0, 10, f"(Lo que supone un ahorro del {round(porcentaje_ahorro_ganadora, 1)}% en tu factura)", ln=True, align='C')
         
         pdf.ln(30); pdf.set_font('Arial', '', 11); pdf.set_text_color(80); pdf.set_x(30)
-        pdf.multi_cell(150, 7, "Este estudio ha sido realizado de forma independiente por Energetika, analizando las mejores ofertas del mercado actual para encontrar la que mejor se adapta a tu perfil de consumo real.", align='C')
+        pdf.multi_cell(150, 7, "Este estudio ha sido realizado de forma independiente por Energetika, analizando y comparando entre más de 35 tarifas del mercado actual para encontrar la que mejor se adapta a tu perfil de consumo real.", align='C')
 
         # ==========================================
         # PÁGINA 2: ANÁLISIS DETALLADO
@@ -156,19 +156,19 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, df_precios_ganadora, nombre
             pdf.set_x(35); pdf.cell(80, 7, f" {row.iloc[0]}", 1); pdf.set_text_color(34, 139, 34); pdf.cell(60, 7, f" +{round(row.iloc[1], 2)} EUR", 1, 1, 'C'); pdf.set_text_color(0)
 
         # ==========================================
-        # PÁGINA 3: CONCLUSIÓN FINAL
+        # PÁGINA 3: CONCLUSIÓN FINAL 
         # ==========================================
         pdf.add_page(); pdf.set_fill_color(230, 240, 255); pdf.set_font('Arial', 'B', 14)
-        pdf.cell(0, 15, " CONCLUSIÓN Y RECOMENDACIÓN FINAL", ln=True, fill=True, align='C')
-        pdf.ln(5); pdf.set_x(20); pdf.set_font('Arial', '', 11); pdf.set_text_color(0)
-        pdf.multi_cell(170, 8, "Proyección de ahorro anual para las opciones más competitivas del mercado:", align='C')
-        pdf.ln(5)
+        pdf.cell(0, 12, " CONCLUSIÓN Y RECOMENDACIÓN FINAL", ln=True, fill=True, align='C')
+        pdf.ln(3); pdf.set_x(20); pdf.set_font('Arial', '', 11); pdf.set_text_color(0)
+        pdf.multi_cell(170, 7, "Proyección de ahorro anual para las opciones más competitivas del mercado:", align='C')
+        pdf.ln(3)
 
         pdf.set_x(10); pdf.set_fill_color(245, 245, 245); pdf.set_font('Arial', 'B', 8)
-        pdf.cell(60, 8, " Compañía / Tarifa", 1, 0, 'C', True)
-        pdf.cell(45, 8, " Ahorro Anual Sin IVA", 1, 0, 'C', True)
-        pdf.cell(45, 8, " Ahorro Anual Con IVA", 1, 0, 'C', True)
-        pdf.cell(40, 8, " % Ahorro", 1, 1, 'C', True)
+        pdf.cell(60, 7, " Compañía / Tarifa", 1, 0, 'C', True)
+        pdf.cell(45, 7, " Ahorro Anual Sin IVA", 1, 0, 'C', True)
+        pdf.cell(45, 7, " Ahorro Anual Con IVA", 1, 0, 'C', True)
+        pdf.cell(40, 7, " % Ahorro", 1, 1, 'C', True)
 
         pdf.set_font('Arial', '', 8)
         for _, row in ranking_ordenado.head(5).iterrows():
@@ -179,26 +179,52 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, df_precios_ganadora, nombre
             an_ci = an_si * 1.21
             porc = (ah_per / coste_actual_total) * 100 if coste_actual_total > 0 else 0
             
-            pdf.set_x(10); pdf.cell(60, 8, f" {nombre_cia}", 1)
-            pdf.cell(45, 8, f" {round(an_si, 2)} EUR", 1, 0, 'C')
-            pdf.cell(45, 8, f" {round(an_ci, 2)} EUR", 1, 0, 'C')
-            pdf.set_text_color(34, 139, 34); pdf.cell(40, 8, f" {round(porc, 1)}%", 1, 1, 'C'); pdf.set_text_color(0)
+            pdf.set_x(10); pdf.cell(60, 7, f" {nombre_cia}", 1)
+            pdf.cell(45, 7, f" {round(an_si, 2)} EUR", 1, 0, 'C')
+            pdf.cell(45, 7, f" {round(an_ci, 2)} EUR", 1, 0, 'C')
+            pdf.set_text_color(34, 139, 34); pdf.cell(40, 7, f" {round(porc, 1)}%", 1, 1, 'C'); pdf.set_text_color(0)
 
-        pdf.ln(10)
-        pdf.set_x(20); pdf.set_font('Arial', '', 11); pdf.multi_cell(170, 8, f"La opción más eficiente para su suministro es {nombre_ganadora}:", align='C')
-        pdf.set_x(20); pdf.set_font('Arial', 'B', 12); pdf.set_text_color(20, 50, 100); pdf.cell(170, 10, f"{str(nombre_ganadora).upper()}", border='TLR', ln=True, align='C')
-        pdf.set_x(20); pdf.set_font('Arial', 'B', 11); pdf.set_text_color(34, 139, 34); pdf.cell(170, 10, f"AHORRO ANUAL ESTIMADO SIN IVA: {round(ahorro_anual_sin_iva, 2)} EUR", border='LR', ln=True, align='C')
-        pdf.set_x(20); pdf.set_font('Arial', 'B', 12); pdf.set_text_color(34, 139, 34); pdf.cell(170, 12, f"AHORRO ANUAL ESTIMADO CON IVA (21%): {round(ahorro_anual_con_iva, 2)} EUR / AÑO", border='BLR', ln=True, align='C')
+        pdf.ln(5) 
+        pdf.set_x(20); pdf.set_font('Arial', '', 11); pdf.multi_cell(170, 7, f"La opción más eficiente para su suministro es {nombre_ganadora}:", align='C')
+        pdf.set_x(20); pdf.set_font('Arial', 'B', 12); pdf.set_text_color(20, 50, 100); pdf.cell(170, 9, f"{str(nombre_ganadora).upper()}", border='TLR', ln=True, align='C')
+        pdf.set_x(20); pdf.set_font('Arial', 'B', 11); pdf.set_text_color(34, 139, 34); pdf.cell(170, 9, f"AHORRO ANUAL ESTIMADO SIN IVA: {round(ahorro_anual_sin_iva, 2)} EUR", border='LR', ln=True, align='C')
+        pdf.set_x(20); pdf.set_font('Arial', 'B', 12); pdf.set_text_color(34, 139, 34); pdf.cell(170, 11, f"AHORRO ANUAL ESTIMADO CON IVA (21%): {round(ahorro_anual_con_iva, 2)} EUR / AÑO", border='BLR', ln=True, align='C')
+        
+        # --- CORRECCIÓN: AHORRO A 5 AÑOS ---
+        ahorro_5_anos = ahorro_anual_con_iva * 5
+        pdf.ln(2); pdf.set_x(20); pdf.set_font('Arial', 'I', 11); pdf.set_text_color(60, 60, 60)
+        pdf.cell(170, 8, f"Con este cambio, dejarás de pagar {round(ahorro_5_anos, 2)} EUR extra en los próximos 5 años.", ln=True, align='C')
 
-        # --- SECCIÓN NUEVA: CÓDIGO QR WHATSAPP ---
-        pdf.ln(10)
+        # --- GRÁFICA COMPARATIVA CON CÁLCULO POR DÍAS ---
+        pdf.ln(3)
+        fig_vs, ax_vs = plt.subplots(figsize=(6, 3)) 
+        g_act_an = (coste_actual_total / total_dias_analizados) * 365 * 1.21 if total_dias_analizados > 0 else 0
+        g_ah_an = ahorro_anual_con_iva
+        g_fin_an = g_act_an - g_ah_an
+        ax_vs.bar(['Situación Actual', 'Nuestra Propuesta'], [g_act_an, 0], color='#e74c3c', label='Gasto Actual', width=0.4)
+        ax_vs.bar(['Situación Actual', 'Nuestra Propuesta'], [0, g_fin_an], color='#2ecc71', label='Nuevo Coste', width=0.4)
+        ax_vs.bar(['Situación Actual', 'Nuestra Propuesta'], [0, g_ah_an], bottom=[0, g_fin_an], color='#f1c40f', label='Tu Ahorro', width=0.4)
+        
+        ax_vs.set_ylabel('Euros (€) al año', fontsize=9); ax_vs.set_title('PROYECCIÓN DE GASTO ANUAL CON IVA', fontsize=10)
+        ax_vs.tick_params(axis='both', which='major', labelsize=8)
+        ax_vs.legend(loc='lower center', bbox_to_anchor=(0.5, -0.25), ncol=3, fontsize=7); plt.tight_layout()
+        
+        vs_p = "temp_vs.png"; fig_vs.savefig(vs_p, dpi=300); plt.close(fig_vs)
+        pdf.image(vs_p, x=40, w=130) 
+
+        # --- SECCIÓN QR ---
+        pdf.ln(3) 
+        qr = qrcode.QRCode(box_size=6, border=2) 
         url_wa = "https://wa.me/4915154663318?text=Hola,%20me%20interesa%20contratar%20la%20tarifa%20ganadora"
-        qr_img = qrcode.make(url_wa)
+        qr.add_data(url_wa)
+        qr.make(fit=True)
+        qr_img = qr.make_image(fill_color=(20, 50, 100), back_color="white")
         qr_path = "temp_qr.png"
         qr_img.save(qr_path)
-        pdf.set_font('Arial', 'B', 10); pdf.set_text_color(20, 50, 100)
-        pdf.cell(0, 5, "Escanea para contratacion directa vía WhatsApp:", ln=True, align='C')
-        pdf.image(qr_path, x=85, w=40)
+        
+        pdf.set_font('Arial', 'B', 9); pdf.set_text_color(20, 50, 100)
+        pdf.cell(0, 4, "Escanea para contratación directa vía WhatsApp:", ln=True, align='C')
+        pdf.image(qr_path, x=92, w=25) 
 
         return pdf.output(dest='S').encode('latin-1')
     except Exception as e:
