@@ -30,20 +30,26 @@ class EnergetikaPDF(FPDF):
 
 def generar_pdf(df_detalle, df_ranking, df_consumos, df_precios_ganadora, nombre_cliente, direccion_cliente, compania_actual_manual):
     def encode_text(text):
+        """Limpia el texto para que sea compatible con el encoding latin-1 de FPDF"""
         return str(text).encode('latin-1', 'replace').decode('latin-1')
 
     try:
         pdf = EnergetikaPDF()
         
-        # --- PROCESAMIENTO PREVIO DE DATOS ---
-        ranking_real = df_ranking[~df_ranking.iloc[:, 0].str.contains("ACTUAL", na=False)]
+        # --- PROCESAMIENTO PREVIO DE DATOS (FLEXIBLE) ---
+        # 1. Encontrar la etiqueta "ACTUAL" dinámicamente
+        mask_actual = df_detalle['Compañía/Tarifa'].str.contains("ACTUAL", na=False, case=False)
+        if not mask_actual.any():
+            st.error("No se encontró la fila 'ACTUAL' en la columna Compañía/Tarifa")
+            return None
+        label_actual = df_detalle[mask_actual]['Compañía/Tarifa'].unique()[0]
+
+        # 2. Filtrar ranking y obtener ganadora
+        ranking_real = df_ranking[~df_ranking.iloc[:, 0].str.contains("ACTUAL", na=False, case=False)]
         ranking_ordenado = ranking_real.sort_values(by=ranking_real.columns[1], ascending=False)
         ganadora_row = ranking_ordenado.iloc[0]
         nombre_ganadora = ganadora_row.iloc[0]
         ahorro_total_periodo = ganadora_row.iloc[1]
-        
-        # Limpieza de nombres para búsqueda exacta
-        label_actual = df_detalle[df_detalle['Compañía/Tarifa'].str.contains("ACTUAL", na=False)]['Compañía/Tarifa'].unique()[0]
         
         coste_actual_total = df_detalle[df_detalle['Compañía/Tarifa'] == label_actual]['Coste (€)'].sum()
         porcentaje_ahorro_ganadora = (ahorro_total_periodo / coste_actual_total) * 100 if coste_actual_total > 0 else 0
@@ -91,47 +97,31 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, df_precios_ganadora, nombre
             pdf.set_x(30); pdf.cell(45, 7, f" {fecha}", 1); pdf.cell(50, 7, f" {round(total_kwh, 2)} kWh", 1, 0, 'C'); pdf.cell(55, 7, f" {row['Potencia (kW)']} kW", 1, 1, 'C')
         pdf.ln(8)
 
-        # --- CORRECCIÓN GRÁFICA COMPARATIVA MENSUAL ---
+        # 2. COMPARATIVA DE COSTES (CORREGIDA)
         pdf.set_font('Arial', 'B', 10); pdf.set_text_color(20, 50, 100); pdf.cell(0, 10, "2. COMPARATIVA DE COSTES Y AHORRO MENSUAL", ln=True)
         pdf.set_x(25); pdf.set_fill_color(210, 225, 240); pdf.cell(40, 7, " Periodo", 1, 0, 'C', True); pdf.cell(40, 7, " Coste Actual", 1, 0, 'C', True); pdf.cell(40, 7, " Coste Propuesta", 1, 0, 'C', True); pdf.cell(40, 7, " Ahorro", 1, 1, 'C', True)
-        
-        meses_grafica, ahorros_grafica = [], []
-        pdf.set_font('Arial', '', 8)
-        
+        pdf.set_font('Arial', '', 8); meses_grafica, ahorros_grafica = [], []
         for fecha in lista_fechas:
             mes_data = df_detalle[df_detalle['Mes/Fecha'] == fecha]
             try:
                 c_act = mes_data[mes_data['Compañía/Tarifa'] == label_actual]['Coste (€)'].values[0]
                 c_pro = mes_data[mes_data['Compañía/Tarifa'] == nombre_ganadora]['Coste (€)'].values[0]
                 ahorro_mes = c_act - c_pro
-                
-                mes_str = str(fecha)
-                meses_grafica.append(mes_str)
-                ahorros_grafica.append(ahorro_mes)
-                
-                pdf.set_x(25); pdf.set_text_color(0); pdf.cell(40, 7, f" {mes_str}", 1)
-                pdf.cell(40, 7, f" {round(c_act, 2)} EUR", 1, 0, 'R')
-                pdf.cell(40, 7, f" {round(c_pro, 2)} EUR", 1, 0, 'R')
+                meses_grafica.append(str(fecha)); ahorros_grafica.append(ahorro_mes)
+                pdf.set_x(25); pdf.set_text_color(0); pdf.cell(40, 7, f" {fecha}", 1); pdf.cell(40, 7, f" {round(c_act, 2)} EUR", 1, 0, 'R'); pdf.cell(40, 7, f" {round(c_pro, 2)} EUR", 1, 0, 'R')
                 if ahorro_mes > 0: pdf.set_text_color(34, 139, 34); txt_ahorro = f" +{round(ahorro_mes, 2)} EUR"
                 else: pdf.set_text_color(200, 0, 0); txt_ahorro = f" {round(ahorro_mes, 2)} EUR"
                 pdf.cell(40, 7, txt_ahorro, 1, 1, 'R'); pdf.set_text_color(0)
             except: continue
 
         if meses_grafica:
-            pdf.ln(5)
-            fig, ax = plt.subplots(figsize=(8, 3.5))
-            colors = ['#2ecc71' if x >= 0 else '#e74c3c' for x in ahorros_grafica]
-            ax.bar(meses_grafica, ahorros_grafica, color=colors, edgecolor='black', alpha=0.8)
-            ax.axhline(0, color='black', linewidth=0.8)
-            ax.set_ylabel('Ahorro (€)')
-            plt.xticks(rotation=0)
-            plt.tight_layout()
-            grafica_path = "temp_plot.png"
-            fig.savefig(grafica_path, dpi=300)
-            plt.close(fig)
-            pdf.image(grafica_path, x=45, w=120)
+            pdf.ln(15)
+            fig, ax = plt.subplots(figsize=(8, 4))
+            ax.bar(meses_grafica, ahorros_grafica, color=['#2ecc71' if x >= 0 else '#e74c3c' for x in ahorros_grafica], edgecolor='black', alpha=0.8)
+            ax.axhline(0, color='black', linewidth=0.8); plt.xticks(rotation=45); plt.tight_layout()
+            grafica_path = "temp_plot.png"; fig.savefig(grafica_path, dpi=300); plt.close(fig); pdf.image(grafica_path, x=45, w=120)
 
-        # DESGLOSE Y RESTO DE PÁGINAS (SIN CAMBIOS)
+        # DESGLOSE Y RESTO (SIN CAMBIOS ESTRUCTURALES)
         if pdf.get_y() > 180: pdf.add_page()
         pdf.set_font('Arial', 'B', 10); pdf.set_text_color(20, 50, 100); pdf.cell(0, 10, encode_text(f"4. DESGLOSE DE COSTES ESTIMADOS ({nombre_ganadora})"), ln=True)
         precios = df_precios_ganadora.set_index('Concepto')['Valor']
@@ -139,8 +129,7 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, df_precios_ganadora, nombre
         total_energia_real = sum((df_consumos['Consumo Punta (kWh)'] * precios.get('Energía Punta (€/kWh)', 0)) + (df_consumos['Consumo Llano (kWh)'] * precios.get('Energía Llano (€/kWh)', 0)) + (df_consumos['Consumo Valle (kWh)'] * precios.get('Energía Valle (€/kWh)', 0)))
         total_excedente_real = sum(df_consumos.get('Excedente (kWh)', [0])) * precios.get('Excedente (€/kWh)', 0)
         
-        fig_pie, ax_pie = plt.subplots(figsize=(6, 4))
-        ax_pie.pie([total_potencia_real, total_energia_real], labels=['Potencia', 'Energía'], autopct='%1.1f%%', startangle=140, colors=['#A9CCE3', '#ABEBC6'])
+        fig_pie, ax_pie = plt.subplots(figsize=(6, 4)); ax_pie.pie([total_potencia_real, total_energia_real], labels=['Potencia', 'Energía'], autopct='%1.1f%%', startangle=140, colors=['#A9CCE3', '#ABEBC6'])
         pie_path = "temp_pie.png"; fig_pie.savefig(pie_path, dpi=300); plt.close(fig_pie); pdf.image(pie_path, x=55, w=100)
 
         pdf.add_page(); pdf.set_fill_color(230, 240, 255); pdf.set_font('Arial', 'B', 14)
@@ -163,9 +152,12 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, df_precios_ganadora, nombre
 
 # --- INTERFAZ STREAMLIT ---
 st.title("📄 Generador Pro | Energetika")
-nombre_cliente = st.text_input("Nombre cliente:", "Sheila Maria Gonzalez Ordoñez")
-direccion_cliente = st.text_input("Dirección:", "Calle Ejemplo 123")
-compania_actual_manual = st.text_input("Compañía actual:", "Energía XXI")
+c1, c2 = st.columns(2)
+with c1:
+    nombre_cliente = st.text_input("Nombre completo cliente:", "Sheila Maria Gonzalez Ordoñez")
+    direccion_cliente = st.text_input("Dirección:", "Calle Ejemplo 123")
+with c2:
+    compania_actual_manual = st.text_input("Compañía actual:", "Energía XXI")
 archivo = st.file_uploader("Sube el archivo Excel", type=["xlsx"])
 
 if archivo:
@@ -174,8 +166,9 @@ if archivo:
         df_ran = pd.read_excel(archivo, sheet_name="Ranking Ahorro")
         df_con = pd.read_excel(archivo, sheet_name="Datos Facturas Originales")
         df_pre = pd.read_excel(archivo, sheet_name="Precios Tarifa Ganadora")
+        st.success("✅ Excel cargado correctamente.")
         if st.button("🚀 Generar PDF"):
             pdf_bytes = generar_pdf(df_det, df_ran, df_con, df_pre, nombre_cliente, direccion_cliente, compania_actual_manual)
             if pdf_bytes:
-                st.download_button("📥 Descargar", pdf_bytes, f"Auditoria_{nombre_cliente}.pdf", "application/pdf")
+                st.download_button("📥 Descargar Informe", pdf_bytes, f"Auditoria_{nombre_cliente.replace(' ', '_')}.pdf", "application/pdf")
     except Exception as e: st.error(f"Error: {e}")
