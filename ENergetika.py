@@ -43,15 +43,8 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, df_precios_ganadora, nombre
         porcentaje_ahorro_ganadora = (ahorro_total_periodo / coste_actual_total) * 100 if coste_actual_total > 0 else 0
         
         lista_fechas = df_consumos['Fecha'].unique()
-        
-        # --- NUEVA LÓGICA DE CÁLCULO POR DÍAS REALES ---
-        total_dias_analizados = df_consumos['Días'].sum()
-        if total_dias_analizados > 0:
-            ahorro_por_dia = ahorro_total_periodo / total_dias_analizados
-            ahorro_anual_sin_iva = ahorro_por_dia * 365
-        else:
-            ahorro_anual_sin_iva = 0
-            
+        num_facturas = len(lista_fechas)
+        ahorro_anual_sin_iva = (ahorro_total_periodo / num_facturas) * 12 if num_facturas > 0 else 0
         ahorro_anual_con_iva = ahorro_anual_sin_iva * 1.21
 
         primer_nombre = nombre_cliente.split()[0] if nombre_cliente else "cliente"
@@ -172,12 +165,8 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, df_precios_ganadora, nombre
         pdf.set_font('Arial', '', 8)
         for _, row in ranking_ordenado.head(5).iterrows():
             nombre_cia = row.iloc[0]; ah_per = row.iloc[1]
-            
-            # --- CORRECCIÓN EN TABLA FINAL ---
-            an_si = (ah_per / total_dias_analizados) * 365 if total_dias_analizados > 0 else 0
-            an_ci = an_si * 1.21
+            an_si = (ah_per / num_facturas) * 12; an_ci = an_si * 1.21
             porc = (ah_per / coste_actual_total) * 100 if coste_actual_total > 0 else 0
-            
             pdf.set_x(10); pdf.cell(60, 7, f" {nombre_cia}", 1)
             pdf.cell(45, 7, f" {round(an_si, 2)} EUR", 1, 0, 'C')
             pdf.cell(45, 7, f" {round(an_ci, 2)} EUR", 1, 0, 'C')
@@ -189,15 +178,15 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, df_precios_ganadora, nombre
         pdf.set_x(20); pdf.set_font('Arial', 'B', 11); pdf.set_text_color(34, 139, 34); pdf.cell(170, 9, f"AHORRO ANUAL ESTIMADO SIN IVA: {round(ahorro_anual_sin_iva, 2)} EUR", border='LR', ln=True, align='C')
         pdf.set_x(20); pdf.set_font('Arial', 'B', 12); pdf.set_text_color(34, 139, 34); pdf.cell(170, 11, f"AHORRO ANUAL ESTIMADO CON IVA (21%): {round(ahorro_anual_con_iva, 2)} EUR / AÑO", border='BLR', ln=True, align='C')
         
-        # --- CORRECCIÓN: AHORRO A 5 AÑOS ---
+        # --- NUEVA LÍNEA: AHORRO A 5 AÑOS ---
         ahorro_5_anos = ahorro_anual_con_iva * 5
         pdf.ln(2); pdf.set_x(20); pdf.set_font('Arial', 'I', 11); pdf.set_text_color(60, 60, 60)
         pdf.cell(170, 8, f"Con este cambio, dejarás de pagar {round(ahorro_5_anos, 2)} EUR extra en los próximos 5 años.", ln=True, align='C')
 
-        # --- GRÁFICA COMPARATIVA CON CÁLCULO POR DÍAS ---
+        # --- GRÁFICA COMPARATIVA ---
         pdf.ln(3)
         fig_vs, ax_vs = plt.subplots(figsize=(6, 3)) 
-        g_act_an = (coste_actual_total / total_dias_analizados) * 365 * 1.21 if total_dias_analizados > 0 else 0
+        g_act_an = (coste_actual_total / num_facturas) * 12 * 1.21
         g_ah_an = ahorro_anual_con_iva
         g_fin_an = g_act_an - g_ah_an
         ax_vs.bar(['Situación Actual', 'Nuestra Propuesta'], [g_act_an, 0], color='#e74c3c', label='Gasto Actual', width=0.4)
