@@ -43,8 +43,9 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, df_precios_ganadora, nombre
         porcentaje_ahorro_ganadora = (ahorro_total_periodo / coste_actual_total) * 100 if coste_actual_total > 0 else 0
         
         lista_fechas = df_consumos['Fecha'].unique()
-        num_facturas = len(lista_fechas)
-        ahorro_anual_sin_iva = (ahorro_total_periodo / num_facturas) * 12 if num_facturas > 0 else 0
+        # NUEVA LÓGICA: Cálculo por días reales
+        dias_totales_periodo = df_consumos['Días'].sum()
+        ahorro_anual_sin_iva = (ahorro_total_periodo / dias_totales_periodo) * 365 if dias_totales_periodo > 0 else 0
         ahorro_anual_con_iva = ahorro_anual_sin_iva * 1.21
 
         primer_nombre = nombre_cliente.split()[0] if nombre_cliente else "cliente"
@@ -165,7 +166,9 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, df_precios_ganadora, nombre
         pdf.set_font('Arial', '', 8)
         for _, row in ranking_ordenado.head(5).iterrows():
             nombre_cia = row.iloc[0]; ah_per = row.iloc[1]
-            an_si = (ah_per / num_facturas) * 12; an_ci = an_si * 1.21
+            # NUEVA LÓGICA: Cálculo por días reales en el ranking
+            an_si = (ah_per / dias_totales_periodo) * 365 if dias_totales_periodo > 0 else 0
+            an_ci = an_si * 1.21
             porc = (ah_per / coste_actual_total) * 100 if coste_actual_total > 0 else 0
             pdf.set_x(10); pdf.cell(60, 7, f" {nombre_cia}", 1)
             pdf.cell(45, 7, f" {round(an_si, 2)} EUR", 1, 0, 'C')
@@ -186,7 +189,8 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, df_precios_ganadora, nombre
         # --- GRÁFICA COMPARATIVA ---
         pdf.ln(3)
         fig_vs, ax_vs = plt.subplots(figsize=(6, 3)) 
-        g_act_an = (coste_actual_total / num_facturas) * 12 * 1.21
+        # NUEVA LÓGICA: Proyección gasto actual anualizado por días
+        g_act_an = (coste_actual_total / dias_totales_periodo) * 365 * 1.21 if dias_totales_periodo > 0 else 0
         g_ah_an = ahorro_anual_con_iva
         g_fin_an = g_act_an - g_ah_an
         ax_vs.bar(['Situación Actual', 'Nuestra Propuesta'], [g_act_an, 0], color='#e74c3c', label='Gasto Actual', width=0.4)
