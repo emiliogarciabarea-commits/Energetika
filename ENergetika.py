@@ -204,19 +204,23 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, df_precios_ganadora, nombre
         vs_p = "temp_vs.png"; fig_vs.savefig(vs_p, dpi=300); plt.close(fig_vs)
         pdf.image(vs_p, x=40, w=130) 
 
-        # --- SECCIÓN QR ---
-        pdf.ln(3) 
-        qr = qrcode.QRCode(box_size=6, border=2) 
+          # --- SECCIÓN WHATSAPP (Sustituye al QR) ---
+        pdf.ln(5) 
         url_wa = "https://wa.me/4915154663318?text=Hola,%20me%20interesa%20contratar%20la%20tarifa%20ganadora"
-        qr.add_data(url_wa)
-        qr.make(fit=True)
-        qr_img = qr.make_image(fill_color=(20, 50, 100), back_color="white")
-        qr_path = "temp_qr.png"
-        qr_img.save(qr_path)
         
-        pdf.set_font('Arial', 'B', 9); pdf.set_text_color(20, 50, 100)
-        pdf.cell(0, 4, "Escanea para contratación directa vía WhatsApp:", ln=True, align='C')
-        pdf.image(qr_path, x=92, w=25) 
+        # Descarga automática del icono de WhatsApp
+        wa_icon_path = "whatsapp_icon.png"
+        if not os.path.exists(wa_icon_path):
+            try:
+                icon_url = "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/WhatsApp.svg/512px-WhatsApp.svg.png"
+                urllib.request.urlretrieve(icon_url, wa_icon_path)
+            except: pass
+        
+        pdf.set_font('Arial', 'B', 10); pdf.set_text_color(37, 211, 102) # Color verde WhatsApp
+        pdf.cell(0, 6, "Haz clic en el icono para contratacion directa vía WhatsApp:", ln=True, align='C')
+        if os.path.exists(wa_icon_path):
+            # La imagen ahora tiene un parámetro 'link' que la hace cliquearle
+            pdf.image(wa_icon_path, x=97, w=16, link=url_wa) 
 
         return pdf.output(dest='S').encode('latin-1')
     except Exception as e:
