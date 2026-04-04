@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from fpdf import FPDF
 from datetime import datetime
 import qrcode  # Librería para el QR
+import urllib.request
 
 # --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(page_title="Energetika Pro", layout="centered")
