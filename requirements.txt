@@ -5,4 +5,4 @@ openpyxl
 fpdf
 matplotlib
 qrcode[pil]
-urllib.request
+
