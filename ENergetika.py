@@ -225,7 +225,7 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, df_precios_ganadora, nombre
         # Insertamos el logo de WhatsApp como un botón
         # Nota: Asegúrate de tener el archivo 'whatsapp_icon.png' en tu carpeta
         # x=95 para centrar un icono de ancho 20 (aprox)
-        pdf.image("Whatsapp.png", x=100, y=pdf.get_y() + 6, w=14, link=url_wa)
+        pdf.image("Whatsapp.png", x=100, y=pdf.get_y() + 6, w=13, link=url_wa)
         
         # Bajamos el cursor manualmente después de la imagen para no solapar contenido
         pdf.ln(25)
