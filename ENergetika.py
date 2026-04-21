@@ -23,7 +23,7 @@ class EnergetikaPDF(FPDF):
         # Nueva línea con Web (Clicable) y Teléfono
         self.set_font('Arial', 'I', 9) # Cursiva para diferenciar
         self.set_text_color(20, 50, 100) # Un tono azulado para el link
-        texto_contacto = "www.energerikapro.com  |  Tel: +34 614 676 150"
+        texto_contacto = "www.energetikapro.com  |  Tel: +34 614 676 150"
         # El parámetro 'link' permite que al pulsar en el texto abra la web
         self.cell(0, 5, texto_contacto, ln=True, link="http://www.energerikapro.com")
         self.ln(10)
@@ -231,7 +231,7 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, df_precios_ganadora, nombre
 # --- INTERFAZ STREAMLIT ---
 st.title("📄 Generador Pro | Energetika")
 c1, c2 = st.columns(2)
-with c1: nombre_cliente = st.text_input("Nombre completo cliente:", "Sheila Maria Gonzalez Ordoñez"); direccion_cliente = st.text_input("Dirección:", "Calle Ejemplo 123")
+with c1: nombre_cliente = st.text_input("Nombre completo cliente:", "Nombre Cliente"); direccion_cliente = st.text_input("Dirección:", "Calle Ejemplo 123")
 with c2: compania_actual_manual = st.text_input("Compañía actual:", "Energía XXI")
 archivo = st.file_uploader("Sube el archivo Excel", type=["xlsx"])
 
