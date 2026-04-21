@@ -67,7 +67,7 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, df_precios_ganadora, nombre
         pdf.set_font('Arial', '', 14); pdf.set_text_color(60, 60, 60)
         pdf.multi_cell(0, 10, "Hemos analizado tus facturas recientes y tenemos excelentes noticias.\nPuedes reducir tu gasto energético significativamente.", align='C')
         
-        pdf.ln(20); pdf.set_fill_color(240, 248, 255); pdf.rect(20, 10, 170, 60, 'F')
+        pdf.ln(20); pdf.set_fill_color(240, 248, 255); pdf.rect(20, 110, 170, 60, 'F')
         pdf.set_y(120); pdf.set_font('Arial', 'B', 16); pdf.set_text_color(20, 50, 100)
         pdf.cell(0, 10, "TU AHORRO ANUAL ESTIMADO ES DE:", ln=True, align='C')
         pdf.set_font('Arial', 'B', 40); pdf.set_text_color(34, 139, 34)
