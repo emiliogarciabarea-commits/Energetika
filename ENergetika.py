@@ -25,7 +25,7 @@ class EnergetikaPDF(FPDF):
         self.set_text_color(20, 50, 100) # Un tono azulado para el link
         texto_contacto = "www.energetikapro.com  |  Tel: +34 614 676 150"
         # El parámetro 'link' permite que al pulsar en el texto abra la web
-        self.cell(0, 5, texto_contacto, ln=True, link="http://www.energerikapro.com")
+        self.cell(0, 5, texto_contacto, ln=True, link="http://www.energetikapro.com")
         self.ln(10)
 
     def footer(self):
