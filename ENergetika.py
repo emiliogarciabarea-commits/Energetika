@@ -210,19 +210,25 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, df_precios_ganadora, nombre
         vs_p = "temp_vs.png"; fig_vs.savefig(vs_p, dpi=300); plt.close(fig_vs)
         pdf.image(vs_p, x=40, w=130) 
 
-        # --- SECCIÓN QR ---
-        pdf.ln(3) 
-        qr = qrcode.QRCode(box_size=6, border=2) 
-        url_wa = "https://wa.me/34614676150?text=Hola,%20me%20interesa%20contratar%20la%20tarifa%20ganadora"
-        qr.add_data(url_wa)
-        qr.make(fit=True)
-        qr_img = qr.make_image(fill_color=(20, 50, 100), back_color="white")
-        qr_path = "temp_qr.png"
-        qr_img.save(qr_path)
+        #Seccion Whatsapp
+        pdf.ln(25) 
+        # Un poco de espacio antes del botón
         
-        pdf.set_font('Arial', 'B', 9); pdf.set_text_color(20, 50, 100)
-        pdf.cell(0, 4, "Escanea para contratación directa vía WhatsApp:", ln=True, align='C')
-        pdf.image(qr_path, x=92, w=25) 
+        # URL de WhatsApp con el mensaje automático
+        url_wa = "https://wa.me/34614676150?text=Hola,%20me%20interesa%20contratar%20la%20tarifa%20ganadora"
+        
+        # Texto de instrucción previo
+        pdf.set_font('Arial', 'B', 10)
+        pdf.set_text_color(20, 50, 100)
+        pdf.cell(0, 5, "Haz clic en el icono para contratacion directa:", ln=True, align='C')
+        
+        # Insertamos el logo de WhatsApp como un botón
+        # Nota: Asegúrate de tener el archivo 'whatsapp_icon.png' en tu carpeta
+        # x=95 para centrar un icono de ancho 20 (aprox)
+        pdf.image("whatsapp.png", x=95, y=pdf.get_y() + 2, w=20, link=url_wa)
+        
+        # Bajamos el cursor manualmente después de la imagen para no solapar contenido
+        pdf.ln(25)
 
         return pdf.output(dest='S').encode('latin-1')
     except Exception as e:
