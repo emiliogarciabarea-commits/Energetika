@@ -220,7 +220,7 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, df_precios_ganadora, nombre
         # Texto de instrucción previo
         pdf.set_font('Arial', 'B', 10)
         pdf.set_text_color(20, 50, 100)
-        pdf.cell(0, 5, "Haz clic en el icono para contratacion directa:", ln=True, align='C')
+        pdf.cell(0, 5, "Haz clic en el icono para contratación directa:", ln=True, align='C')
         
         # Insertamos el logo de WhatsApp como un botón
         # Nota: Asegúrate de tener el archivo 'whatsapp_icon.png' en tu carpeta
