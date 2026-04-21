@@ -20,6 +20,12 @@ class EnergetikaPDF(FPDF):
         self.set_font('Arial', '', 10)
         self.set_text_color(100)
         self.cell(0, 5, f'Energetika - Consultoría Profesional | {datetime.now().strftime("%d/%m/%Y")}', ln=True)
+        # Nueva línea con Web (Clicable) y Teléfono
+        self.set_font('Arial', 'I', 9) # Cursiva para diferenciar
+        self.set_text_color(20, 50, 100) # Un tono azulado para el link
+        texto_contacto = "www.energerikapro.com  |  Tel: +34 614 676 150"
+        # El parámetro 'link' permite que al pulsar en el texto abra la web
+        self.cell(0, 5, texto_contacto, ln=True, link="http://www.energerikapro.com")
         self.ln(10)
 
     def footer(self):
@@ -207,7 +213,7 @@ def generar_pdf(df_detalle, df_ranking, df_consumos, df_precios_ganadora, nombre
         # --- SECCIÓN QR ---
         pdf.ln(3) 
         qr = qrcode.QRCode(box_size=6, border=2) 
-        url_wa = "https://wa.me/4915154663318?text=Hola,%20me%20interesa%20contratar%20la%20tarifa%20ganadora"
+        url_wa = "https://wa.me/34614676150?text=Hola,%20me%20interesa%20contratar%20la%20tarifa%20ganadora"
         qr.add_data(url_wa)
         qr.make(fit=True)
         qr_img = qr.make_image(fill_color=(20, 50, 100), back_color="white")
