@@ -148,7 +148,7 @@ with c1:
 with c2: 
     compania_actual_manual = st.text_input("Compañía actual:", "Energía XXI")
     opcion_nombres = st.radio("Formato de nombres en PDF:", 
-                              ("Nombres Reales", "Nomenclatura Energetika (Óptima / Alternativas)"))
+                              ("Nombres Reales", "Nombres Energetika (Óptima / Alternativas)"))
 
 mostrar_nombres = True if opcion_nombres == "Nombres Reales" else False
 
