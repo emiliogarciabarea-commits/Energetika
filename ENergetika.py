@@ -12,7 +12,7 @@ st.set_page_config(page_title="Energetika Pro", layout="centered")
 class EnergetikaPDF(FPDF):
     def header(self):
         if os.path.exists("Logo_Energetika.png"):
-            self.image("Logo_Energetika.png", 155, 10, 40)
+            self.image("Logo_Energetika.png", 135, 10, 60)
         
         self.set_font('Arial', 'B', 16)
         self.set_text_color(20, 50, 100)
