@@ -61,16 +61,16 @@ class EnergetikaPDF(FPDF):
 
         # El resto de la lógica de búsqueda de datos usa el nombre original 
         # para no romper los cálculos, pero el PDF mostrará los nuevos nombres.
-        nombre_busqueda_ganadora = ranking_real.sort_values(by=ranking_real.columns[1], ascending=False).iloc[0, 0]
-
-        ahorro_total_periodo = ranking_ordenado.iloc[0, 1]
-        coste_actual_total = df_detalle[df_detalle['Compañía/Tarifa'].str.contains("ACTUAL", na=False)]['Coste (€)'].sum()
-        porcentaje_ahorro_ganadora = (ahorro_total_periodo / coste_actual_total) * 100 if coste_actual_total > 0 else 0
-        
-        dias_totales_periodo = df_consumos['Días'].sum()
-        ahorro_anual_sin_iva = (ahorro_total_periodo / dias_totales_periodo) * 365 if dias_totales_periodo > 0 else 0
-        ahorro_anual_con_iva = ahorro_anual_sin_iva * 1.21
-        primer_nombre = nombre_cliente.split()[0] if nombre_cliente else "cliente"
+            nombre_busqueda_ganadora = ranking_real.sort_values(by=ranking_real.columns[1], ascending=False).iloc[0, 0]
+    
+            ahorro_total_periodo = ranking_ordenado.iloc[0, 1]
+            coste_actual_total = df_detalle[df_detalle['Compañía/Tarifa'].str.contains("ACTUAL", na=False)]['Coste (€)'].sum()
+            porcentaje_ahorro_ganadora = (ahorro_total_periodo / coste_actual_total) * 100 if coste_actual_total > 0 else 0
+            
+            dias_totales_periodo = df_consumos['Días'].sum()
+            ahorro_anual_sin_iva = (ahorro_total_periodo / dias_totales_periodo) * 365 if dias_totales_periodo > 0 else 0
+            ahorro_anual_con_iva = ahorro_anual_sin_iva * 1.21
+            primer_nombre = nombre_cliente.split()[0] if nombre_cliente else "cliente"
 
         # ==========================================
         # PÁGINA 1: PORTADA
