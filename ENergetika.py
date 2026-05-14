@@ -32,25 +32,36 @@ class EnergetikaPDF(FPDF):
         self.set_text_color(128)
         self.cell(0, 10, 'Informe generado por Energetika - Auditoría Profesional.', 0, 0, 'C')
 
-def generar_pdf(df_detalle, df_ranking, df_consumos, df_precios_ganadora, nombre_cliente, direccion_cliente, compania_actual_manual, mostrar_nombres):
-    try:
-        pdf = EnergetikaPDF()
-        
-        # --- PROCESAMIENTO PREVIO DE DATOS ---
-        ranking_real = df_ranking[~df_ranking.iloc[:, 0].str.contains("ACTUAL", na=False)].copy()
-        ranking_ordenado = ranking_real.sort_values(by=ranking_real.columns[1], ascending=False)
-        
-        # MODIFICACIÓN: Lógica de nombres anónimos
-        if not mostrar_nombres:
-            # Creamos un mapeo para que la ganadora y el ranking coincidan
-            mapeo_nombres = {nombre: f"Opción {i+1}" for i, nombre in enumerate(ranking_ordenado.iloc[:, 0])}
-            # Aplicamos el mapeo al ranking
-            ranking_ordenado.iloc[:, 0] = ranking_ordenado.iloc[:, 0].map(mapeo_nombres)
-            # Actualizamos el nombre de la ganadora para el resto del PDF
-            original_ganadora = ranking_real.sort_values(by=ranking_real.columns[1], ascending=False).iloc[0, 0]
-            nombre_ganadora = mapeo_nombres[original_ganadora]
-        else:
-            nombre_ganadora = ranking_ordenado.iloc[0, 0]
+    def generar_pdf(df_detalle, df_ranking, df_consumos, df_precios_ganadora, nombre_cliente, direccion_cliente, compania_actual_manual, mostrar_nombres):
+        try:
+            pdf = EnergetikaPDF()
+            
+            # --- PROCESAMIENTO PREVIO DE DATOS ---
+            ranking_real = df_ranking[~df_ranking.iloc[:, 0].str.contains("ACTUAL", na=False)].copy()
+            ranking_ordenado = ranking_real.sort_values(by=ranking_real.columns[1], ascending=False)
+            
+            # MODIFICACIÓN: Lógica de nombres profesionales (Óptima / Alternativas)
+            if not mostrar_nombres:
+                # Creamos el mapeo: la primera es "Tarifa Óptima Energetika", las demás letras A, B, C...
+                mapeo_nombres = {}
+                for i, nombre_original in enumerate(ranking_ordenado.iloc[:, 0]):
+                    if i == 0:
+                        mapeo_nombres[nombre_original] = "Tarifa Óptima Energetika"
+                    else:
+                        # Usamos el abecedario (A=65 en ASCII)
+                        letra = chr(64 + i) 
+                        mapeo_nombres[nombre_original] = f"Alternativa de Mercado {letra}"
+                
+                # Aplicamos el mapeo al ranking
+                ranking_ordenado.iloc[:, 0] = ranking_ordenado.iloc[:, 0].map(mapeo_nombres)
+                # Nombre de la ganadora para los textos del PDF
+                nombre_ganadora = "Tarifa Óptima Energetika"
+            else:
+                nombre_ganadora = ranking_ordenado.iloc[0, 0]
+
+        # El resto de la lógica de búsqueda de datos usa el nombre original 
+        # para no romper los cálculos, pero el PDF mostrará los nuevos nombres.
+        nombre_busqueda_ganadora = ranking_real.sort_values(by=ranking_real.columns[1], ascending=False).iloc[0, 0]
 
         ahorro_total_periodo = ranking_ordenado.iloc[0, 1]
         coste_actual_total = df_detalle[df_detalle['Compañía/Tarifa'].str.contains("ACTUAL", na=False)]['Coste (€)'].sum()
