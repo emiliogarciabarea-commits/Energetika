@@ -11,6 +11,26 @@ st.set_page_config(page_title="Energetika Pro", layout="centered")
 
 class EnergetikaPDF(FPDF):
     def header(self):
+        self.set_font('Arial', 'B', 32)
+        # Un gris muy claro (240, 240, 240) para que no dificulte la lectura del texto principal
+        self.set_text_color(240, 240, 240)
+        
+        # Guardamos la posición original del cursor antes de meter el fondo
+        current_x = self.get_x()
+        current_y = self.get_y()
+        
+        # Colocamos el texto en el centro de la página como marca de agua
+        self.set_xy(35, 130)
+        # Guardamos el estado para rotar el texto en diagonal (opcional, aquí va recto/semi-diagonal en bloque)
+        self.cell(0, 15, 'ENERGETIKA - DOCUMENTO PRIVADO', ln=True, align='C')
+        self.set_xy(35, 150)
+        self.cell(0, 15, 'PROHIBIDA SU REPRODUCCIÓN', ln=True, align='C')
+        
+        # Restauramos la posición del cursor y el color original para el encabezado real
+        self.set_xy(current_x, current_y)
+        self.set_text_color(0)
+
+        
         if os.path.exists("Logo_Energetika.png"):
             self.image("Logo_Energetika.png", 138, 3, 55)
         
